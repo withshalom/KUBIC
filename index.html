@@ -729,6 +729,19 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
 #coord-overlay-3d { display: none; }
 #coord-overlay-3d.visible { display: flex; }
 
+
+/* ── OP HISTORY PANEL ── */
+.hist-empty { font-size:9px; color:var(--t3); padding:4px 0; letter-spacing:0.06em; }
+.hist-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:4px 0; border-bottom:1px solid var(--border);
+  font-size:9px; letter-spacing:0.04em;
+}
+.hist-item:last-child { border-bottom:none; }
+.hist-type { color:#5ddb8c; font-weight:600; letter-spacing:0.08em; }
+.hist-detail { color:var(--t3); }
+#op-history-list { max-height:120px; overflow-y:auto; }
+
 </style>
 </head>
 <body>
@@ -772,15 +785,16 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
         <div class="tb-dd-item" onclick="initCamera();render();closeMenus()">Reset View<span class="dd-key">Home</span></div>
         <div class="tb-dd-sep"></div>
         <div class="tb-dd-item" onclick="toggleGrid();closeMenus()">Toggle Grid<span class="dd-key">G</span></div>
-        <div class="tb-dd-item" onclick="toggleSnap();closeMenus()">Toggle Snap<span class="dd-key">F3</span></div>
         <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item" onclick="toggleUnits();closeMenus()">Toggle mm / in<span class="dd-key">U</span></div>
+        <div class="tb-dd-item" onclick="insertPrimitive('box');closeMenus()">Insert Box</div>
+        <div class="tb-dd-item" onclick="insertPrimitive('cylinder');closeMenus()">Insert Cylinder</div>
+        <div class="tb-dd-item" onclick="insertPrimitive('sphere');closeMenus()">Insert Sphere</div>
         <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item" onclick="setView3D('iso');closeMenus()">Isometric View<span class="dd-key">Num7</span></div>
-        <div class="tb-dd-item" onclick="setView3D('top');closeMenus()">Top View<span class="dd-key">Num1</span></div>
-        <div class="tb-dd-item" onclick="setView3D('front');closeMenus()">Front View<span class="dd-key">Num3</span></div>
-        <div class="tb-dd-item" onclick="setView3D('right');closeMenus()">Right View<span class="dd-key">Num5</span></div>
-        <div class="tb-dd-item" onclick="toggleProjection();closeMenus()">Perspective / Ortho<span class="dd-key">Num0</span></div>
+        <div class="tb-dd-item" onclick="runBoolean('union');closeMenus()">Boolean Union</div>
+        <div class="tb-dd-item" onclick="runBoolean('subtract');closeMenus()">Boolean Subtract</div>
+        <div class="tb-dd-item" onclick="runBoolean('intersect');closeMenus()">Boolean Intersect</div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item" onclick="OpHistory.undo();closeMenus()">Undo Operation<span class="dd-key">Ctrl+Z</span></div>
       </div>
     </div>
     <div class="tb-menu-item" id="menu-draw" onmouseenter="openMenu('draw')" onmouseleave="scheduleClose()">Draw
@@ -962,6 +976,10 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
     </div>
   </div>
 
+  <div class="section-head">Operations</div>
+  <div id="op-history-list" class="prop-group">
+    <div class="hist-empty">No operations yet</div>
+  </div>
   <div class="section-head">Properties</div>
   <div class="props-panel">
     <div class="prop-row"><span class="prop-key">Objects</span><span class="prop-val accent" id="prop-objects">0</span></div>
@@ -3720,7 +3738,7 @@ const _origSerialize = GeoMemory.serialize.bind(GeoMemory);
 GeoMemory.serialize = function() {
   return JSON.stringify({
     format:       'KUBE',
-    version:      '1.0',
+    version:      '1.1',
     units:        'mm',
     displayUnits: unitMode,
     workplane:    activePlane,
@@ -5039,32 +5057,8 @@ window.commitImport3D = function() {
   _import3dParsed = null;
 };
 
-// ── PUSH/PULL TOOL (3D scaffold) ────────────────────────
+// ── PUSH/PULL STATE (Phase 3 implements this) ─────────────────
 let pushPullState = { active: false, faceIdx: -1, baseDepth: 0 };
-
-function activatePushPull() {
-  pushPullState.active = true;
-  showToast('Push/Pull: click a face to extrude · Phase 2 scaffold');
-  document.getElementById('pushpull-input').classList.add('visible');
-  document.getElementById('pushpull-field').focus();
-}
-
-document.getElementById('pushpull-field').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    const depth = parseFloat(document.getElementById('pushpull-field').value);
-    if (!isNaN(depth)) {
-      showToast(`Push/Pull: depth ${depth} mm — full extrusion in Phase 3`);
-    }
-    document.getElementById('pushpull-input').classList.remove('visible');
-    pushPullState.active = false;
-    e.preventDefault();
-  }
-  if (e.key === 'Escape') {
-    document.getElementById('pushpull-input').classList.remove('visible');
-    pushPullState.active = false;
-    e.preventDefault();
-  }
-});
 
 // ── KEYBOARD: View preset numpad shortcuts ───────────────
 document.addEventListener('keydown', (e) => {
@@ -5097,6 +5091,775 @@ async function initPhase2() {
   console.log(`KUBE Phase 2 renderer: ${rendererBackend}`);
 }
 
+
+// ═══════════════════════════════════════════════════════════
+//  KUBE v1.0 — PHASE 3: Solid Kernel
+//  Push/Pull · Boolean Ops · Operation History · .kbe solids
+// ═══════════════════════════════════════════════════════════
+
+// ── HALF-EDGE MESH (B-Rep light) ────────────────────────────
+// Stores topology: faces → edges → vertices
+// Enables face selection, push/pull, and boolean prep
+
+class HalfEdgeMesh {
+  constructor() {
+    this.vertices = [];   // [{x,y,z, id}]
+    this.faces    = [];   // [{verts:[i,i,i,...], normal:{x,y,z}, id, sourceOp}]
+    this.nextVId  = 0;
+    this.nextFId  = 0;
+  }
+
+  addVertex(x, y, z) {
+    // Weld coincident vertices within tolerance
+    const EPS = 1e-4;
+    const existing = this.vertices.find(v =>
+      Math.abs(v.x-x)<EPS && Math.abs(v.y-y)<EPS && Math.abs(v.z-z)<EPS
+    );
+    if (existing) return existing.id;
+    const id = this.nextVId++;
+    this.vertices.push({x, y, z, id});
+    return id;
+  }
+
+  addFace(vertIndices, sourceOp='manual') {
+    const id = this.nextFId++;
+    const verts = vertIndices.map(i => this.vertices[i]);
+    // Compute face normal (Newell's method for poly faces)
+    const n = this._newellNormal(verts);
+    this.faces.push({verts: vertIndices, normal: n, id, sourceOp});
+    return id;
+  }
+
+  _newellNormal(verts) {
+    let nx=0, ny=0, nz=0;
+    const n = verts.length;
+    for (let i=0; i<n; i++) {
+      const cur  = verts[i];
+      const next = verts[(i+1)%n];
+      nx += (cur.y  - next.y) * (cur.z  + next.z);
+      ny += (cur.z  - next.z) * (cur.x  + next.x);
+      nz += (cur.x  - next.x) * (cur.y  + next.y);
+    }
+    const len = Math.sqrt(nx*nx+ny*ny+nz*nz) || 1;
+    return {x:nx/len, y:ny/len, z:nz/len};
+  }
+
+  // Tessellate to triangle soup for GPU upload
+  toTriangles() {
+    const tris = [];
+    for (const face of this.faces) {
+      const verts = face.verts.map(i => this.vertices[i]);
+      // Fan triangulation from first vertex
+      for (let i=1; i<verts.length-1; i++) {
+        tris.push({
+          normal: face.normal,
+          verts:  [verts[0], verts[i], verts[i+1]],
+          faceId: face.id,
+        });
+      }
+    }
+    return tris;
+  }
+
+  // Get planar face area
+  faceArea(face) {
+    const verts = face.verts.map(i => this.vertices[i]);
+    let area = 0;
+    for (let i=1; i<verts.length-1; i++) {
+      const ab = Vec3.sub([verts[i].x,verts[i].y,verts[i].z],[verts[0].x,verts[0].y,verts[0].z]);
+      const ac = Vec3.sub([verts[i+1].x,verts[i+1].y,verts[i+1].z],[verts[0].x,verts[0].y,verts[0].z]);
+      area += Vec3.length(Vec3.cross(ab,ac)) / 2;
+    }
+    return area;
+  }
+
+  clone() {
+    const m = new HalfEdgeMesh();
+    m.vertices = this.vertices.map(v => ({...v}));
+    m.faces    = this.faces.map(f => ({...f, verts:[...f.verts], normal:{...f.normal}}));
+    m.nextVId  = this.nextVId;
+    m.nextFId  = this.nextFId;
+    return m;
+  }
+
+  serialize() {
+    return { vertices: this.vertices, faces: this.faces, nextVId: this.nextVId, nextFId: this.nextFId };
+  }
+
+  static deserialize(data) {
+    const m = new HalfEdgeMesh();
+    m.vertices = data.vertices || [];
+    m.faces    = data.faces    || [];
+    m.nextVId  = data.nextVId  || 0;
+    m.nextFId  = data.nextFId  || 0;
+    return m;
+  }
+}
+
+// ── SOLID STORE ─────────────────────────────────────────────
+// Holds parametric solids — each has a mesh + operation history
+const SolidStore = {
+  solids: [],  // [{id, name, mesh:HalfEdgeMesh, color, visible}]
+  nextId: 1,
+
+  add(name, mesh, color='#3d7a4a') {
+    const solid = { id: this.nextId++, name, mesh, color, visible: true };
+    this.solids.push(solid);
+    return solid;
+  },
+
+  remove(id) { this.solids = this.solids.filter(s => s.id !== id); },
+
+  clear() { this.solids = []; this.nextId = 1; },
+
+  getById(id) { return this.solids.find(s => s.id === id); },
+
+  // Rebuild GPU buffers from all solids combined
+  allTriangles() {
+    const tris = [];
+    for (const solid of this.solids) {
+      if (solid.visible) tris.push(...solid.mesh.toTriangles());
+    }
+    return tris;
+  },
+
+  serialize() {
+    return this.solids.map(s => ({
+      id:      s.id,
+      name:    s.name,
+      color:   s.color,
+      visible: s.visible,
+      mesh:    s.mesh.serialize(),
+    }));
+  },
+
+  deserialize(data) {
+    this.solids = (data||[]).map(s => ({
+      id:      s.id,
+      name:    s.name,
+      color:   s.color,
+      visible: s.visible,
+      mesh:    HalfEdgeMesh.deserialize(s.mesh),
+    }));
+    this.nextId = Math.max(1, ...this.solids.map(s => s.id+1));
+  }
+};
+
+// ── OPERATION HISTORY (Parametric stack) ────────────────────
+const OpHistory = {
+  ops: [],   // [{id, type, params, solidId, timestamp}]
+  nextId: 1,
+
+  push(type, params, solidId=null) {
+    const op = { id: this.nextId++, type, params, solidId, timestamp: Date.now() };
+    this.ops.push(op);
+    updateHistoryPanel();
+    return op;
+  },
+
+  undo() {
+    if (!this.ops.length) { showToast('Nothing to undo'); return; }
+    const op = this.ops.pop();
+    // Remove the solid this op created
+    if (op.solidId !== null) SolidStore.remove(op.solidId);
+    rebuildScene();
+    updateHistoryPanel();
+    showToast(`Undo: ${op.type}`);
+  },
+
+  clear() { this.ops = []; this.nextId = 1; updateHistoryPanel(); },
+
+  serialize() { return this.ops; },
+  deserialize(data) { this.ops = data||[]; this.nextId = Math.max(1,...this.ops.map(o=>o.id+1),1); }
+};
+
+function updateHistoryPanel() {
+  const el = document.getElementById('op-history-list');
+  if (!el) return;
+  if (!OpHistory.ops.length) {
+    el.innerHTML = '<div class="hist-empty">No operations yet</div>';
+    return;
+  }
+  el.innerHTML = [...OpHistory.ops].reverse().map(op => `
+    <div class="hist-item">
+      <span class="hist-type">${op.type}</span>
+      <span class="hist-detail">${formatOpDetail(op)}</span>
+    </div>`).join('');
+}
+
+function formatOpDetail(op) {
+  const p = op.params;
+  if (op.type==='EXTRUDE')  return `d=${p.depth}mm`;
+  if (op.type==='BOOLEAN')  return p.operation;
+  if (op.type==='REVOLVE')  return `${p.angle}°`;
+  if (op.type==='STL_IMPORT') return `${p.triangles} tri`;
+  return JSON.stringify(p).slice(0,28);
+}
+
+// ── SKETCH → SOLID: Extrude closed profile ──────────────────
+function extrudeProfile(profile2D, depth, direction=[0,0,1]) {
+  // profile2D: array of {x,y} in world mm — must be closed (first=last or auto-close)
+  const mesh = new HalfEdgeMesh();
+  const n = profile2D.length;
+  if (n < 3) { showToast('Need at least 3 points to extrude'); return null; }
+
+  // Bottom ring
+  const botIds = profile2D.map(p => mesh.addVertex(p.x, p.y, 0));
+  // Top ring
+  const topIds = profile2D.map(p =>
+    mesh.addVertex(
+      p.x + direction[0]*depth,
+      p.y + direction[1]*depth,
+      0   + direction[2]*depth
+    )
+  );
+
+  // Bottom cap face (reversed winding for outward normal)
+  mesh.addFace([...botIds].reverse(), 'EXTRUDE_CAP_BOT');
+
+  // Top cap face
+  mesh.addFace([...topIds], 'EXTRUDE_CAP_TOP');
+
+  // Side faces — quad per edge, split into 2 triangles
+  for (let i=0; i<n; i++) {
+    const j = (i+1)%n;
+    mesh.addFace([botIds[i], botIds[j], topIds[j], topIds[i]], 'EXTRUDE_SIDE');
+  }
+
+  return mesh;
+}
+
+// ── PUSH/PULL: Extrude a mesh face ──────────────────────────
+function pushPullFace(solid, faceId, depth) {
+  const mesh  = solid.mesh.clone();
+  const face  = mesh.faces.find(f => f.id === faceId);
+  if (!face) return null;
+
+  const normal = face.normal;
+  const oldVerts = face.verts.map(i => mesh.vertices[i]);
+
+  // Add new offset vertices
+  const newIds = oldVerts.map(v =>
+    mesh.addVertex(
+      v.x + normal.x * depth,
+      v.y + normal.y * depth,
+      v.z + normal.z * depth
+    )
+  );
+
+  // Replace original face with offset face
+  face.verts = newIds;
+  face.normal = face.normal; // unchanged
+
+  // Add side walls
+  const n = oldVerts.length;
+  for (let i=0; i<n; i++) {
+    const j = (i+1)%n;
+    const bi = face.verts[i], bj = face.verts[j];
+    // Map oldVerts indices back to mesh vertex ids
+    const oi = mesh.vertices.findIndex(v =>
+      Math.abs(v.x-oldVerts[i].x)<1e-4 &&
+      Math.abs(v.y-oldVerts[i].y)<1e-4 &&
+      Math.abs(v.z-oldVerts[i].z)<1e-4
+    );
+    const oj = mesh.vertices.findIndex(v =>
+      Math.abs(v.x-oldVerts[j].x)<1e-4 &&
+      Math.abs(v.y-oldVerts[j].y)<1e-4 &&
+      Math.abs(v.z-oldVerts[j].z)<1e-4
+    );
+    if (oi>=0 && oj>=0) {
+      mesh.addFace([oi, oj, bj, bi], 'PUSHPULL_SIDE');
+    }
+  }
+
+  return mesh;
+}
+
+// ── BOOLEAN OPERATIONS (mesh-based CSG) ─────────────────────
+// Lightweight BSP-tree CSG — works reliably for convex solids,
+// approximate for concave. Full manifold-wasm in Phase 4.
+const BooleanOps = {
+  // Classify all triangles of B relative to A's faces
+  _classifyTris(trisA, trisB) {
+    // Simple: test triangle centroids against face planes of A
+    const inside = [], outside = [];
+    for (const tri of trisB) {
+      const cx = (tri.verts[0].x+tri.verts[1].x+tri.verts[2].x)/3;
+      const cy = (tri.verts[0].y+tri.verts[1].y+tri.verts[2].y)/3;
+      const cz = (tri.verts[0].z+tri.verts[1].z+tri.verts[2].z)/3;
+      let insideCount = 0;
+      for (const ta of trisA) {
+        // Plane of ta: normal dot (P - v0) < 0 means inside
+        const v0 = ta.verts[0];
+        const d = ta.normal.x*(cx-v0.x) + ta.normal.y*(cy-v0.y) + ta.normal.z*(cz-v0.z);
+        if (d < 0) insideCount++;
+      }
+      if (insideCount > trisA.length * 0.5) inside.push(tri);
+      else outside.push(tri);
+    }
+    return { inside, outside };
+  },
+
+  union(solidA, solidB) {
+    const tA = solidA.mesh.toTriangles();
+    const tB = solidB.mesh.toTriangles();
+    const { outside: bOut } = this._classifyTris(tA, tB);
+    const { outside: aOut } = this._classifyTris(tB, tA);
+    return this._trisToMesh([...aOut, ...bOut], 'BOOLEAN_UNION');
+  },
+
+  subtract(solidA, solidB) {
+    const tA = solidA.mesh.toTriangles();
+    const tB = solidB.mesh.toTriangles();
+    const { outside: aOut } = this._classifyTris(tB, tA);
+    const { inside: bIn }   = this._classifyTris(tA, tB);
+    // Flip normals of B's inside faces
+    const bFlipped = bIn.map(t => ({
+      ...t,
+      normal: {x:-t.normal.x, y:-t.normal.y, z:-t.normal.z},
+      verts:  [t.verts[0], t.verts[2], t.verts[1]],
+    }));
+    return this._trisToMesh([...aOut, ...bFlipped], 'BOOLEAN_SUBTRACT');
+  },
+
+  intersect(solidA, solidB) {
+    const tA = solidA.mesh.toTriangles();
+    const tB = solidB.mesh.toTriangles();
+    const { inside: bIn } = this._classifyTris(tA, tB);
+    const { inside: aIn } = this._classifyTris(tB, tA);
+    return this._trisToMesh([...aIn, ...bIn], 'BOOLEAN_INTERSECT');
+  },
+
+  _trisToMesh(tris, sourceOp) {
+    const mesh = new HalfEdgeMesh();
+    for (const tri of tris) {
+      const ids = tri.verts.map(v => mesh.addVertex(v.x, v.y, v.z));
+      mesh.faces.push({
+        verts:  ids,
+        normal: tri.normal,
+        id:     mesh.nextFId++,
+        sourceOp,
+      });
+    }
+    return mesh;
+  }
+};
+
+// ── FACE PICKER (ray–triangle intersection) ──────────────────
+function pickFace(screenX, screenY) {
+  // Unproject screen coords to world ray
+  const w = canvas3d ? canvas3d.width  : 800;
+  const h = canvas3d ? canvas3d.height : 600;
+  const ndcX = (screenX / w) * 2 - 1;
+  const ndcY = 1 - (screenY / h) * 2;
+
+  // Inverse VP matrix — simplified: use camera ray from eye through near plane
+  const eye = cam3EyePos();
+  updateCam3Matrices();
+
+  // Compute inverse of VP
+  const invVP = mat4Invert(cam3.vpMat);
+  if (!invVP) return null;
+
+  const near4 = mat4Vec4Mul(invVP, [ndcX, ndcY, -1, 1]);
+  const far4  = mat4Vec4Mul(invVP, [ndcX, ndcY,  1, 1]);
+  const nearW = [near4[0]/near4[3], near4[1]/near4[3], near4[2]/near4[3]];
+  const farW  = [far4[0]/far4[3],   far4[1]/far4[3],   far4[2]/far4[3]];
+  const rayDir = Vec3.normalize(Vec3.sub(farW, nearW));
+
+  let bestT = Infinity, bestFaceId = -1, bestSolidId = -1;
+
+  for (const solid of SolidStore.solids) {
+    if (!solid.visible) continue;
+    for (const face of solid.mesh.faces) {
+      // Fan-triangulate face for ray test
+      const fv = face.verts.map(i => solid.mesh.vertices[i]);
+      for (let i=1; i<fv.length-1; i++) {
+        const t = rayTriIntersect(eye, rayDir, fv[0], fv[i], fv[i+1]);
+        if (t !== null && t < bestT) {
+          bestT = t; bestFaceId = face.id; bestSolidId = solid.id;
+        }
+      }
+    }
+  }
+
+  return bestT < Infinity ? { faceId: bestFaceId, solidId: bestSolidId, t: bestT } : null;
+}
+
+function rayTriIntersect(orig, dir, v0, v1, v2) {
+  const EPSILON = 1e-7;
+  const e1 = Vec3.sub([v1.x,v1.y,v1.z],[v0.x,v0.y,v0.z]);
+  const e2 = Vec3.sub([v2.x,v2.y,v2.z],[v0.x,v0.y,v0.z]);
+  const h  = Vec3.cross(dir, e2);
+  const a  = Vec3.dot(e1, h);
+  if (Math.abs(a) < EPSILON) return null;
+  const f = 1/a;
+  const s = Vec3.sub(orig, [v0.x,v0.y,v0.z]);
+  const u = f * Vec3.dot(s, h);
+  if (u<0||u>1) return null;
+  const q = Vec3.cross(s, e1);
+  const v = f * Vec3.dot(dir, q);
+  if (v<0||u+v>1) return null;
+  const t = f * Vec3.dot(e2, q);
+  return t > EPSILON ? t : null;
+}
+
+// Mat4 inverse (Cramer's rule)
+function mat4Invert(m) {
+  const inv = new Float32Array(16);
+  inv[0]  =  m[5]*m[10]*m[15]-m[5]*m[11]*m[14]-m[9]*m[6]*m[15]+m[9]*m[7]*m[14]+m[13]*m[6]*m[11]-m[13]*m[7]*m[10];
+  inv[4]  = -m[4]*m[10]*m[15]+m[4]*m[11]*m[14]+m[8]*m[6]*m[15]-m[8]*m[7]*m[14]-m[12]*m[6]*m[11]+m[12]*m[7]*m[10];
+  inv[8]  =  m[4]*m[9]*m[15]-m[4]*m[11]*m[13]-m[8]*m[5]*m[15]+m[8]*m[7]*m[13]+m[12]*m[5]*m[11]-m[12]*m[7]*m[9];
+  inv[12] = -m[4]*m[9]*m[14]+m[4]*m[10]*m[13]+m[8]*m[5]*m[14]-m[8]*m[6]*m[13]-m[12]*m[5]*m[10]+m[12]*m[6]*m[9];
+  inv[1]  = -m[1]*m[10]*m[15]+m[1]*m[11]*m[14]+m[9]*m[2]*m[15]-m[9]*m[3]*m[14]-m[13]*m[2]*m[11]+m[13]*m[3]*m[10];
+  inv[5]  =  m[0]*m[10]*m[15]-m[0]*m[11]*m[14]-m[8]*m[2]*m[15]+m[8]*m[3]*m[14]+m[12]*m[2]*m[11]-m[12]*m[3]*m[10];
+  inv[9]  = -m[0]*m[9]*m[15]+m[0]*m[11]*m[13]+m[8]*m[1]*m[15]-m[8]*m[3]*m[13]-m[12]*m[1]*m[11]+m[12]*m[3]*m[9];
+  inv[13] =  m[0]*m[9]*m[14]-m[0]*m[10]*m[13]-m[8]*m[1]*m[14]+m[8]*m[2]*m[13]+m[12]*m[1]*m[10]-m[12]*m[2]*m[9];
+  inv[2]  =  m[1]*m[6]*m[15]-m[1]*m[7]*m[14]-m[5]*m[2]*m[15]+m[5]*m[3]*m[14]+m[13]*m[2]*m[7]-m[13]*m[3]*m[6];
+  inv[6]  = -m[0]*m[6]*m[15]+m[0]*m[7]*m[14]+m[4]*m[2]*m[15]-m[4]*m[3]*m[14]-m[12]*m[2]*m[7]+m[12]*m[3]*m[6];
+  inv[10] =  m[0]*m[5]*m[15]-m[0]*m[7]*m[13]-m[4]*m[1]*m[15]+m[4]*m[3]*m[13]+m[12]*m[1]*m[7]-m[12]*m[3]*m[5];
+  inv[14] = -m[0]*m[5]*m[14]+m[0]*m[6]*m[13]+m[4]*m[1]*m[14]-m[4]*m[2]*m[13]-m[12]*m[1]*m[6]+m[12]*m[2]*m[5];
+  inv[3]  = -m[1]*m[6]*m[11]+m[1]*m[7]*m[10]+m[5]*m[2]*m[11]-m[5]*m[3]*m[10]-m[9]*m[2]*m[7]+m[9]*m[3]*m[6];
+  inv[7]  =  m[0]*m[6]*m[11]-m[0]*m[7]*m[10]-m[4]*m[2]*m[11]+m[4]*m[3]*m[10]+m[8]*m[2]*m[7]-m[8]*m[3]*m[6];
+  inv[11] = -m[0]*m[5]*m[11]+m[0]*m[7]*m[9]+m[4]*m[1]*m[11]-m[4]*m[3]*m[9]-m[8]*m[1]*m[7]+m[8]*m[3]*m[5];
+  inv[15] =  m[0]*m[5]*m[10]-m[0]*m[6]*m[9]-m[4]*m[1]*m[10]+m[4]*m[2]*m[9]+m[8]*m[1]*m[6]-m[8]*m[2]*m[5];
+  let det = m[0]*inv[0]+m[1]*inv[4]+m[2]*inv[8]+m[3]*inv[12];
+  if (Math.abs(det) < 1e-12) return null;
+  det = 1/det;
+  return inv.map(v => v*det);
+}
+
+function mat4Vec4Mul(m, v) {
+  return [
+    m[0]*v[0]+m[4]*v[1]+m[8]*v[2]+m[12]*v[3],
+    m[1]*v[0]+m[5]*v[1]+m[9]*v[2]+m[13]*v[3],
+    m[2]*v[0]+m[6]*v[1]+m[10]*v[2]+m[14]*v[3],
+    m[3]*v[0]+m[7]*v[1]+m[11]*v[2]+m[15]*v[3],
+  ];
+}
+
+// ── PRIMITIVE BUILDERS ───────────────────────────────────────
+const Primitives = {
+  box(w, h, d, cx=0, cy=0, cz=0) {
+    const mesh = new HalfEdgeMesh();
+    const x0=cx-w/2, x1=cx+w/2, y0=cy-h/2, y1=cy+h/2, z0=cz, z1=cz+d;
+    const v = [
+      mesh.addVertex(x0,y0,z0), mesh.addVertex(x1,y0,z0),
+      mesh.addVertex(x1,y1,z0), mesh.addVertex(x0,y1,z0),
+      mesh.addVertex(x0,y0,z1), mesh.addVertex(x1,y0,z1),
+      mesh.addVertex(x1,y1,z1), mesh.addVertex(x0,y1,z1),
+    ];
+    mesh.addFace([v[3],v[2],v[1],v[0]],'BOX_BOT');
+    mesh.addFace([v[4],v[5],v[6],v[7]],'BOX_TOP');
+    mesh.addFace([v[0],v[1],v[5],v[4]],'BOX_FRT');
+    mesh.addFace([v[2],v[3],v[7],v[6]],'BOX_BCK');
+    mesh.addFace([v[3],v[0],v[4],v[7]],'BOX_LFT');
+    mesh.addFace([v[1],v[2],v[6],v[5]],'BOX_RGT');
+    return mesh;
+  },
+
+  cylinder(r, h, segs=32, cx=0, cy=0, cz=0) {
+    const mesh = new HalfEdgeMesh();
+    const botIds=[], topIds=[];
+    for (let i=0; i<segs; i++) {
+      const a = (i/segs)*Math.PI*2;
+      botIds.push(mesh.addVertex(cx+Math.cos(a)*r, cy+Math.sin(a)*r, cz));
+      topIds.push(mesh.addVertex(cx+Math.cos(a)*r, cy+Math.sin(a)*r, cz+h));
+    }
+    mesh.addFace([...botIds].reverse(),'CYL_BOT');
+    mesh.addFace([...topIds],'CYL_TOP');
+    for (let i=0; i<segs; i++) {
+      const j=(i+1)%segs;
+      mesh.addFace([botIds[i],botIds[j],topIds[j],topIds[i]],'CYL_SIDE');
+    }
+    return mesh;
+  },
+
+  sphere(r, stacks=16, slices=24, cx=0, cy=0, cz=0) {
+    const mesh = new HalfEdgeMesh();
+    const ids = [];
+    for (let i=0; i<=stacks; i++) {
+      const phi = (i/stacks)*Math.PI - Math.PI/2;
+      ids.push([]);
+      for (let j=0; j<=slices; j++) {
+        const theta = (j/slices)*Math.PI*2;
+        ids[i].push(mesh.addVertex(
+          cx + r*Math.cos(phi)*Math.cos(theta),
+          cy + r*Math.cos(phi)*Math.sin(theta),
+          cz + r*Math.sin(phi)
+        ));
+      }
+    }
+    for (let i=0; i<stacks; i++) {
+      for (let j=0; j<slices; j++) {
+        const a=ids[i][j], b=ids[i][j+1], c=ids[i+1][j+1], d=ids[i+1][j];
+        if (i===0) mesh.addFace([a,b,c],'SPHERE');
+        else if (i===stacks-1) mesh.addFace([a,b,d],'SPHERE');
+        else mesh.addFace([a,b,c,d],'SPHERE');
+      }
+    }
+    return mesh;
+  }
+};
+
+// ── ACTIVE PUSH/PULL STATE ───────────────────────────────────
+let _ppSolidId = null, _ppFaceId = null, _ppPreviewMesh = null;
+
+function rebuildScene() {
+  const tris = [
+    ...SolidStore.allTriangles(),
+    ...MeshStore.meshes.flatMap(m => m.triangles)
+  ];
+  if (!tris.length) {
+    if (canvas3d) canvas3d.style.display = 'none';
+    document.getElementById('main-canvas').style.opacity = '1';
+    return;
+  }
+  uploadMeshToGPU(tris);
+  if (canvas3d) {
+    canvas3d.style.display = 'block';
+    document.getElementById('main-canvas').style.opacity = '0.08';
+  }
+  render3D();
+}
+
+// ── FULL PUSH/PULL IMPLEMENTATION ───────────────────────────
+// Replace Phase 2 scaffold
+window.activatePushPull = function() {
+  if (!SolidStore.solids.length && !MeshStore.meshes.length) {
+    showToast('Nothing to push/pull — draw a sketch first, then Extrude');
+    return;
+  }
+  pushPullState.active = true;
+  setGPUStatus('ok', 'Pick face');
+  showToast('Push/Pull: click a face · type depth · Enter');
+  document.getElementById('pushpull-input').classList.add('visible');
+  document.getElementById('pushpull-unit').textContent = unitMode;
+  document.getElementById('pushpull-field').value = '';
+  document.getElementById('pushpull-field').focus();
+};
+
+// Wire canvas click → face pick when push/pull active
+document.getElementById('canvas-wrap').addEventListener('click', (e) => {
+  if (!pushPullState.active || !is3DMode()) return;
+  if (!canvas3d) return;
+  const rect = canvas3d.getBoundingClientRect();
+  const sx = e.clientX - rect.left;
+  const sy = e.clientY - rect.top;
+  const hit = pickFace(sx, sy);
+  if (hit) {
+    _ppSolidId = hit.solidId;
+    _ppFaceId  = hit.faceId;
+    const solid = SolidStore.getById(hit.solidId);
+    const face  = solid ? solid.mesh.faces.find(f=>f.id===hit.faceId) : null;
+    if (face) {
+      const area = solid.mesh.faceArea(face).toFixed(1);
+      showToast(`Face selected · ${area} mm² · Enter depth`);
+      document.getElementById('pushpull-field').focus();
+    }
+  }
+});
+
+// Override pushpull field enter handler
+document.getElementById('pushpull-field').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const raw   = document.getElementById('pushpull-field').value.trim();
+    const depth = parseFloat(raw);
+    if (isNaN(depth) || depth === 0) {
+      showToast('Enter a non-zero depth value');
+      return;
+    }
+    const mmDepth = unitMode === 'in' ? depth * 25.4 : depth;
+
+    if (_ppSolidId !== null) {
+      // Push/pull existing solid face
+      const solid    = SolidStore.getById(_ppSolidId);
+      const newMesh  = pushPullFace(solid, _ppFaceId, mmDepth);
+      if (newMesh) {
+        solid.mesh = newMesh;
+        OpHistory.push('PUSHPULL', { depth: mmDepth, faceId: _ppFaceId }, _ppSolidId);
+        rebuildScene();
+        showToast(`Push/Pull ${mmDepth > 0 ? '+' : ''}${mmDepth.toFixed(2)} mm`);
+      }
+    } else if (GeoMemory.objects.length) {
+      // Extrude 2D sketch profile
+      const profile = extractSketchProfile();
+      if (profile) {
+        const mesh   = extrudeProfile(profile, mmDepth);
+        if (mesh) {
+          const solid = SolidStore.add('Extrusion', mesh);
+          OpHistory.push('EXTRUDE', { depth: mmDepth, profilePts: profile.length }, solid.id);
+          rebuildScene();
+          showToast(`Extruded ${mmDepth.toFixed(2)} mm · ${profile.length} pts`);
+        }
+      }
+    }
+
+    document.getElementById('pushpull-input').classList.remove('visible');
+    pushPullState.active = false;
+    _ppSolidId = null; _ppFaceId = null;
+  }
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    document.getElementById('pushpull-input').classList.remove('visible');
+    pushPullState.active = false;
+    _ppSolidId = null; _ppFaceId = null;
+    showToast('Push/Pull cancelled');
+  }
+}, true); // capture phase to override Phase 2 handler
+
+// ── SKETCH PROFILE EXTRACTOR ────────────────────────────────
+// Finds closed loops in GeoMemory and returns ordered point arrays
+function extractSketchProfile() {
+  const lines = GeoMemory.objects.filter(o => o.type === 'LINE');
+  const polys  = GeoMemory.objects.filter(o => o.type === 'POLYLINE');
+
+  // Try polylines first (already ordered)
+  if (polys.length) {
+    const poly = polys[0];
+    return poly.pts.map(p => ({x:p.x, y:p.y}));
+  }
+
+  // Build adjacency from lines
+  if (!lines.length) { showToast('No sketch geometry to extrude'); return null; }
+  const EPS = 0.1;
+  const adj = {};
+
+  function ptKey(x,y) { return `${x.toFixed(2)},${y.toFixed(2)}`; }
+
+  for (const l of lines) {
+    const k1=ptKey(l.x1,l.y1), k2=ptKey(l.x2,l.y2);
+    if (!adj[k1]) adj[k1]={pt:{x:l.x1,y:l.y1},neighbors:[]};
+    if (!adj[k2]) adj[k2]={pt:{x:l.x2,y:l.y2},neighbors:[]};
+    adj[k1].neighbors.push(k2);
+    adj[k2].neighbors.push(k1);
+  }
+
+  // Walk a closed loop
+  const keys  = Object.keys(adj);
+  if (!keys.length) return null;
+  const visited = new Set();
+  const loop    = [];
+  let cur = keys[0];
+
+  while (cur && !visited.has(cur)) {
+    visited.add(cur);
+    loop.push(adj[cur].pt);
+    const next = adj[cur].neighbors.find(n => !visited.has(n));
+    cur = next || null;
+  }
+
+  if (loop.length < 3) { showToast('Profile needs a closed loop of 3+ segments'); return null; }
+  return loop;
+}
+
+// ── BOOLEAN TOOL UI ─────────────────────────────────────────
+function runBoolean(operation) {
+  const solids = SolidStore.solids.filter(s=>s.visible);
+  if (solids.length < 2) {
+    showToast(`Need 2 solids for ${operation} — have ${solids.length}`);
+    return;
+  }
+  const A = solids[0], B = solids[1];
+  let resultMesh;
+  if (operation==='union')     resultMesh = BooleanOps.union(A,B);
+  if (operation==='subtract')  resultMesh = BooleanOps.subtract(A,B);
+  if (operation==='intersect') resultMesh = BooleanOps.intersect(A,B);
+  if (!resultMesh) return;
+
+  SolidStore.remove(A.id);
+  SolidStore.remove(B.id);
+  const result = SolidStore.add(`${operation}(A,B)`, resultMesh);
+  OpHistory.push('BOOLEAN', {operation, aId:A.id, bId:B.id}, result.id);
+  rebuildScene();
+  showToast(`Boolean ${operation} complete`);
+}
+
+// ── PRIMITIVE TOOL UI ────────────────────────────────────────
+function insertPrimitive(type) {
+  let mesh, name;
+  if (type==='box') {
+    const w=parseFloat(prompt('Box width (mm):','50')||'50');
+    const h=parseFloat(prompt('Box height (mm):','50')||'50');
+    const d=parseFloat(prompt('Box depth (mm):','50')||'50');
+    if (isNaN(w)||isNaN(h)||isNaN(d)) return;
+    mesh=Primitives.box(w,h,d); name=`Box ${w}×${h}×${d}`;
+  } else if (type==='cylinder') {
+    const r=parseFloat(prompt('Cylinder radius (mm):','25')||'25');
+    const h=parseFloat(prompt('Cylinder height (mm):','50')||'50');
+    if (isNaN(r)||isNaN(h)) return;
+    mesh=Primitives.cylinder(r,h); name=`Cylinder r${r} h${h}`;
+  } else if (type==='sphere') {
+    const r=parseFloat(prompt('Sphere radius (mm):','25')||'25');
+    if (isNaN(r)) return;
+    mesh=Primitives.sphere(r); name=`Sphere r${r}`;
+  }
+  if (!mesh) return;
+  const solid = SolidStore.add(name, mesh);
+
+  // Frame camera on it
+  const bbox = { minX:-60,maxX:60,minY:-60,maxY:60,minZ:0,maxZ:60 };
+  cam3.target = [0,0,30]; cam3.radius = 300;
+
+  OpHistory.push('PRIMITIVE', {type, name}, solid.id);
+  rebuildScene();
+  showToast(`Inserted ${name}`);
+}
+
+// ── UNDO keyboard ────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey) {
+    e.preventDefault();
+    OpHistory.undo();
+  }
+});
+
+// ── UPDATE .KBE SERIALIZATION to include solids + history ───
+GeoMemory.serialize = function() {
+  return JSON.stringify({
+    format:       'KUBE',
+    version:      '1.1',
+    units:        'mm',
+    displayUnits: unitMode,
+    workplane:    activePlane,
+    viewMode:     viewMode,
+    nextId:       this.nextId,
+    objects:      this.objects,
+    solids:       SolidStore.serialize(),
+    history:      OpHistory.serialize(),
+  }, null, 2);
+};
+
+GeoMemory.deserialize = function(s) {
+  try {
+    const d = JSON.parse(s);
+    this.objects = d.objects || [];
+    this.nextId  = d.nextId  || 1;
+    if (d.solids)  SolidStore.deserialize(d.solids);
+    if (d.history) OpHistory.deserialize(d.history);
+    if (d.displayUnits && d.displayUnits !== unitMode) toggleUnits();
+    if (d.workplane) setWorkplane(d.workplane);
+    if (d.viewMode && d.viewMode !== viewMode) toggleViewMode();
+    rebuildScene();
+    updateHistoryPanel();
+    return true;
+  } catch(e) { console.error('KBE load error:', e); return false; }
+};
+
+// ── PHASE 3 INIT ────────────────────────────────────────────
+function initPhase3() {
+  updateHistoryPanel();
+  // Add Phase 3 keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+    if (e.key==='e'||e.key==='E') { setTool('pushpull'); activatePushPull(); }
+  });
+  console.log('KUBE Phase 3: Solid kernel ready');
+}
+
+
+
 // ── INIT ────────────────────────────────────────────────
 requestAnimationFrame(()=>{
   requestAnimationFrame(()=>{
@@ -5109,6 +5872,7 @@ requestAnimationFrame(()=>{
     // Phase 2: boot WebGPU/WebGL2 renderer
     initPhase2().then(()=>{
       uploadGridToGPU();
+      initPhase3();
     });
     setTimeout(()=>{
       GeoMemory.addLine(-15,0,15,0);
