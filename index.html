@@ -122,7 +122,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
 .layer-count { font-size:10px; color:var(--t3); font-family:var(--fm); }
 
 /* ── CANVAS AREA ── */
-#canvas-wrap { position:relative; overflow:hidden; background:var(--void); }
+#canvas-wrap { position:relative; overflow:hidden; background:var(--void); flex:1; min-width:0; }
 #main-canvas { display:block; }
 
 /* ── SNAP INDICATOR ── */
@@ -662,25 +662,13 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
 #orbit-hint span { color: var(--accent); }
 
 /* 3D axis gizmo */
-#axis-gizmo {
-  position: absolute; bottom: 44px; right: 12px;
-  width: 72px; height: 72px; pointer-events: none;
-}
+
 
 /* View preset buttons */
-#view-presets {
-  position: absolute; top: 36px; right: 8px;
-  display: flex; flex-direction: column; gap: 3px;
-}
-.vp-btn {
-  background: rgba(11,20,16,0.88); border: 1px solid var(--border);
-  border-radius: 3px; color: var(--t3); font-family: var(--fm);
-  font-size: 8px; padding: 4px 7px; cursor: pointer;
-  transition: all 0.12s; letter-spacing: 0.06em;
-  text-transform: uppercase; text-align: center; min-width: 42px;
-}
-.vp-btn:hover { background: var(--hover); border-color: var(--border-hi); color: var(--t1); }
-.vp-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+
+
+
 
 /* 3D selection info */
 #sel3d-info {
@@ -748,6 +736,89 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
 .hist-detail { color:var(--t3); }
 #op-history-list { max-height:120px; overflow-y:auto; }
 
+
+.tool-grid-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  padding: 6px;
+  background: var(--border);
+  border-top: 1px solid var(--border);
+}
+.tool-grid-bottom .tool-btn {
+  grid-column: 1 / -1;
+}
+.tool-grid-bottom .tool-btn {
+  width: 100%;
+}
+
+#btn-pushpull { color: var(--accent); border-top: 1px solid rgba(0,232,122,0.2); }
+
+/* ── Navigation cube — SVG-based, always reliable ───────── */
+#navcube {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 120px; height: 150px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+  user-select: none;
+}
+#navcube-svg {
+  width: 120px; height: 120px;
+  pointer-events: all;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+}
+#navcube-svg .nc-face {
+  transition: fill 0.15s, stroke 0.15s;
+  cursor: pointer;
+}
+#navcube-svg .nc-face:hover { fill: rgba(0,232,122,0.45) !important; stroke: #00e87a !important; stroke-width: 1.5 !important; }
+#navcube-svg .nc-corner {
+  fill: rgba(0,0,0,0); stroke: rgba(255,255,255,0); cursor: pointer;
+}
+#navcube-svg .nc-corner:hover { fill: rgba(0,232,122,0.3); stroke: #00e87a; stroke-width: 1; }
+#navcube-svg .nc-edge {
+  fill: rgba(0,0,0,0); stroke: rgba(255,255,255,0); cursor: pointer;
+}
+#navcube-svg .nc-edge:hover { fill: rgba(0,232,122,0.25); stroke: #00e87a; stroke-width: 1; }
+#navcube-svg text { font-family: 'Fira Code', monospace; font-weight: 600; font-size: 9px; pointer-events: none; }
+#navcube-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  pointer-events: all;
+}
+.nc-btn {
+  flex: 1;
+  padding: 4px 0;
+  background: rgba(10,20,16,0.85);
+  border: 1px solid rgba(0,232,122,0.3);
+  color: #00e87a;
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.nc-btn:hover { background: rgba(0,232,122,0.15); border-color: #00e87a; }
+.nc-btn.active { background: rgba(0,232,122,0.2); border-color: #00e87a; color: #fff; }
+
+#navcube-svg .nc-corner-dot {
+  fill: rgba(0,232,122,0);
+  stroke: rgba(0,232,122,0);
+  cursor: pointer;
+  transition: fill 0.15s, stroke 0.15s;
+}
+#navcube-svg .nc-corner-dot:hover {
+  fill: rgba(0,232,122,0.6);
+  stroke: #00e87a;
+  stroke-width: 1.5;
+}
 </style>
 </head>
 <body>
@@ -874,10 +945,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
       <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="16" x2="21" y2="16"/><path d="M14 11.5l3 2.5-3 2.5" stroke-width="1.2"/></svg></div>
       <span class="tool-label">OFFSET</span>
     </button>
-    <button class="tool-btn" id="btn-select2" onclick="deleteSelected()" title="Delete selected (Del)">
-      <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></div>
-      <span class="tool-label">DELETE</span>
-    </button>
+
     <button class="tool-btn" id="btn-rotate" onclick="setTool('rotate')">
       <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></div>
       <span class="tool-label">ROTATE</span>
@@ -894,13 +962,24 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
       <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 19 L5 8 Q5 5 8 5 L19 5"/></svg></div>
       <span class="tool-label">FILLET</span>
     </button>
-    <button class="tool-btn" id="btn-pushpull" onclick="setTool('pushpull');activatePushPull()" title="Push/Pull face (3D)">
+    <button class="tool-btn" id="btn-chamfer" onclick="setTool('chamfer')">
+      <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 20 L12 4 L20 20"/><line x1="7" y1="14" x2="17" y2="14"/></svg></div>
+      <span class="tool-label">CHAMFER</span>
+    </button>
+    <button class="tool-btn" id="btn-mirror" onclick="setTool('mirror')">
+      <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="3,2"/><path d="M3 8l9-5 9 5"/><path d="M3 16l9 5 9-5"/></svg></div>
+      <span class="tool-label">MIRROR</span>
+    </button>
+    <button class="tool-btn" id="btn-measure" onclick="setTool('measure')">
+      <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"/><path d="M3 6l3 6-3 6"/><path d="M21 6l-3 6 3 6"/></svg></div>
+      <span class="tool-label">MEASURE</span>
+    </button>
+    <button class="tool-btn" id="btn-pushpull" onclick="setTool('pushpull');activatePushPull()" style="grid-column:1/-1;color:var(--accent,#00e87a);border-top:1px solid rgba(0,232,122,0.18);">
       <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7"/><rect x="4" y="3" width="16" height="4" rx="1"/></svg></div>
       <span class="tool-label">PUSH/PULL</span>
     </button>
-  </div>
+  </div><!-- end tool-grid -->
 
-  <!-- Rotation controls (shown when rotate tool is active OR objects are selected) -->
   <div id="rotate-bar">
     <button class="rot-btn" onclick="rotateSelected(-90)" title="Rotate 90° counter-clockwise (Q)">↺90°</button>
     <button class="rot-btn" onclick="rotateSelected(90)"  title="Rotate 90° clockwise (E)">↻90°</button>
@@ -911,7 +990,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
     <button class="rot-btn" onclick="applyRotationInput(true)" title="Set absolute angle">ABS</button>
     <button class="rot-btn" onclick="flattenSelection()" title="Rotate to 0° horizontal">→0°</button>
   </div>
-
   <div id="arc-bar" style="display:none;align-items:center;gap:6px;padding:5px 8px;background:var(--panel2);border-bottom:1px solid var(--border);flex-shrink:0;">
     <label style="font-family:var(--fm);font-size:9px;color:var(--t3);letter-spacing:0.08em;text-transform:uppercase;">MODE</label>
     <button id="arc-btn-3pt" onclick="setArcMode('3pt')" style="background:var(--accent-glow);border:1px solid var(--accent);border-radius:3px;color:var(--accent);font-family:var(--fm);font-size:9px;padding:3px 7px;cursor:pointer;">3-Point</button>
@@ -927,8 +1005,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
     <input type="number" id="offset-dist-input" value="10" min="0.0001" step="0.5"/>
     <span id="offset-dist-unit">mm</span>
   </div>
-
-  <!-- Polygon sides input (only shown for polygon tool) -->
   <div id="poly-bar" style="display:none;align-items:center;gap:6px;padding:5px 8px;background:var(--panel2);border-bottom:1px solid var(--border);flex-shrink:0;">
     <label style="font-family:var(--fm);font-size:9px;color:var(--t3);letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;">SIDES</label>
     <input type="number" id="poly-sides-input" value="6" min="3" max="64" step="1" style="background:var(--panel);border:1px solid var(--border-hi);border-radius:3px;color:var(--accent);font-family:var(--fm);font-size:11px;padding:3px 6px;width:52px;outline:none;text-align:right;"/>
@@ -936,51 +1012,76 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
     <input type="checkbox" id="poly-inscribed" checked title="Inscribed (vertices on circle) vs circumscribed"/>
   </div>
 
-  <div class="section-head">File</div>
-  <div class="file-ops">
-    <button class="op-btn kbe" onclick="saveKBE()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-      Save .kbe
-    </button>
-    <button class="op-btn kbe" onclick="document.getElementById('load-kbe').click()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Open .kbe
-    </button>
-    <input type="file" id="load-kbe" accept=".kbe" onchange="loadKBE(event)">
-    <button class="op-btn export3d" onclick="exportDXF()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      Export .dxf
-    </button>
-    <button class="op-btn export3d" onclick="document.getElementById('load-dxf').click()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Import .dxf
-    </button>
-    <input type="file" id="load-dxf" accept=".dxf,.DXF" onchange="importDXF(event)">
-    <button class="op-btn" onclick="openImport3D()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3L3 8.5l9 5.5 9-5.5z"/><path d="M3 15.5l9 5.5 9-5.5"/><path d="M3 8.5v7M21 8.5v7"/></svg>
-      Import .stl / .step
-    </button>
-    <button class="op-btn" onclick="exportSTL()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      Export .stl
-    </button>
-    <input type="file" id="load-3d" accept=".stl,.STL,.step,.STEP,.stp,.STP" onchange="handle3DImport(event)">
-  </div>
 
-  <!-- Coordinate Input Help -->
-  <div id="coord-panel">
-    <div class="section-head" id="coord-panel-head" onclick="toggleCoordPanel()" style="cursor:pointer;display:flex;justify-content:space-between;">
-      <span>Coord Input</span><span id="coord-chevron">▶</span>
-    </div>
-    <div id="coord-panel-body">
-      <div class="coord-example">While LINE active, type to open input.</div>
-      <div class="coord-example">Values entered in current unit (<span id="coord-cur-unit" style="color:var(--accent)">mm</span>):</div>
-      <div class="coord-example"><b>100,50</b> — absolute X,Y</div>
-      <div class="coord-example"><i>@50,-20</i> — relative dX,dY</div>
-      <div class="coord-example"><em>@100&lt;45</em> — polar dist&lt;angle°</div>
-      <div class="coord-example" style="margin-top:4px;color:var(--t3);">Press <b>Enter</b> to commit · <b>Esc</b> to cancel · <b>U</b> to toggle units</div>
-    </div>
+<div class="tool-grid-bottom">
+    <button class="tool-btn" id="btn-delete" onclick="deleteSelected()" style="color:#ff4455;">
+      <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#ff4455" stroke-width="1.5">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+        <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+      </svg></div>
+      <span class="tool-label" style="color:#ff4455;">DELETE</span>
+    </button>
   </div>
+    <!-- ── Export ── -->
+    <div class="section-head" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px;">Export</div>
+    <div style="padding:4px 8px 8px;border-bottom:1px solid rgba(255,255,255,0.05);">
+      <button onclick="exportSTL()"
+        style="width:100%;background:rgba(0,232,122,0.08);border:1px solid rgba(0,232,122,0.2);
+        border-radius:5px;color:var(--green,#00ff9d);font-family:var(--fm);font-size:9px;
+        padding:6px;cursor:pointer;letter-spacing:0.06em;margin-bottom:3px;
+        display:flex;align-items:center;gap:6px;justify-content:center;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>Export .stl</button>
+      <button onclick="exportSTEP()"
+        style="width:100%;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.14);
+        border-radius:5px;color:var(--t2,#6a8099);font-family:var(--fm);font-size:9px;
+        padding:6px;cursor:pointer;letter-spacing:0.06em;margin-bottom:3px;
+        display:flex;align-items:center;gap:6px;justify-content:center;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>Export .step <span style="font-size:7px;opacity:0.45;">(AP214)</span></button>
+      <button onclick="saveKBE()"
+        style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);
+        border-radius:5px;color:var(--t2);font-family:var(--fm);font-size:9px;
+        padding:6px;cursor:pointer;letter-spacing:0.06em;
+        display:flex;align-items:center;gap:6px;justify-content:center;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+        </svg>Save .kbe</button>
+      <!-- SCAD — export + import together, amber -->
+      <button onclick="exportSCAD()"
+        style="width:100%;background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.25);
+        border-radius:5px;color:var(--amber,#ffaa00);font-family:var(--fm);font-size:9px;
+        padding:6px;cursor:pointer;letter-spacing:0.06em;margin-top:3px;
+        display:flex;align-items:center;gap:6px;justify-content:center;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <path d="M8 13h8M8 17h5"/>
+        </svg>Export .scad</button>
+      <label style="width:100%;background:rgba(255,170,0,0.05);border:1px solid rgba(255,170,0,0.15);
+        border-radius:5px;color:rgba(255,170,0,0.7);font-family:var(--fm);font-size:9px;
+        padding:6px;cursor:pointer;letter-spacing:0.06em;margin-top:3px;
+        display:flex;align-items:center;gap:6px;justify-content:center;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>Import .scad
+        <input type="file" accept=".scad,.SCAD" style="display:none"
+          onchange="importSCAD(this.files[0]);this.value=''">
+      </label>
+    </div>
+    <!-- ── Solids ── -->
+    <div class="section-head" style="margin-top:4px;">Solids</div>
+    <div id="solid-list" style="max-height:130px;overflow-y:auto;
+      border-bottom:1px solid rgba(255,255,255,0.05);">
+      <div style="font-family:var(--fm);font-size:9px;color:var(--t3);padding:6px 8px;">No solids</div>
+    </div>
 
   <div class="section-head">Operations</div>
   <div id="op-history-list" class="prop-group">
@@ -1026,20 +1127,57 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
   <!-- Phase 2: 3D overlays -->
   <div id="webgpu-status"><div class="gpu-dot"></div><span id="gpu-label">Initialising…</span></div>
 
-  <div id="view-presets">
-    <button class="vp-btn"        id="vp-iso"   onclick="setView3D('iso')">ISO</button>
-    <button class="vp-btn active" id="vp-top"   onclick="setView3D('top')">TOP</button>
-    <button class="vp-btn"        id="vp-front" onclick="setView3D('front')">FRT</button>
-    <button class="vp-btn"        id="vp-right" onclick="setView3D('right')">RGT</button>
-    <button class="vp-btn"        id="vp-persp" onclick="toggleProjection()">PERSP</button>
-  </div>
+  <!-- ─── Navigation Cube ─── -->
+  <div id="navcube">
+    <svg id="navcube-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <!-- TOP face (rhombus, green) -->
+      <path class="nc-face" d="M60 12 L102 36 L60 60 L18 36 Z"
+            fill="rgba(0,232,122,0.22)" stroke="rgba(0,232,122,0.7)" stroke-width="1"
+            onclick="setView3D('top')">
+        <title>Top view</title>
+      </path>
+      <!-- FRONT face (lower-left rhombus, blue) -->
+      <path class="nc-face" d="M18 36 L60 60 L60 108 L18 84 Z"
+            fill="rgba(77,184,255,0.22)" stroke="rgba(77,184,255,0.7)" stroke-width="1"
+            onclick="setView3D('front')">
+        <title>Front view</title>
+      </path>
+      <!-- RIGHT face (lower-right rhombus, red) -->
+      <path class="nc-face" d="M60 60 L102 36 L102 84 L60 108 Z"
+            fill="rgba(255,85,102,0.22)" stroke="rgba(255,85,102,0.7)" stroke-width="1"
+            onclick="setView3D('right')">
+        <title>Right view</title>
+      </path>
 
-  <canvas id="axis-gizmo"></canvas>
+      <!-- Face labels -->
+      <text x="60" y="38" fill="#00e87a" text-anchor="middle">TOP</text>
+      <text x="39" y="76" fill="#4db8ff" text-anchor="middle">FRT</text>
+      <text x="81" y="76" fill="#ff5566" text-anchor="middle">RGT</text>
+
+      <!-- Corner hit-areas for ISO views -->
+      <circle class="nc-corner" cx="60"  cy="12"  r="6" onclick="setView3D('iso')"><title>Isometric</title></circle>
+      <circle class="nc-corner" cx="18"  cy="36"  r="6" onclick="setView3D('left')"><title>Left view</title></circle>
+      <circle class="nc-corner" cx="102" cy="36"  r="6" onclick="setView3D('back')"><title>Back view</title></circle>
+      <circle class="nc-corner" cx="60"  cy="108" r="6" onclick="setView3D('bot')"><title>Bottom view</title></circle>
+
+      <!-- Edge labels indicators (very subtle) -->
+      <text x="10" y="20" fill="rgba(255,255,255,0.4)" font-size="7">ISO</text>
+    </svg>
+    <div id="navcube-actions">
+      <button class="nc-btn" onclick="setView3D('iso')" title="Isometric">ISO</button>
+      <button class="nc-btn" id="vp-persp" onclick="toggleProjection()" title="Toggle perspective">PERSP</button>
+    </div>
+  </div>
 
   <div id="orbit-hint" class="visible">
     <span>Left-drag</span> orbit &nbsp;·&nbsp; <span>Mid-drag</span> pan &nbsp;·&nbsp; <span>Scroll</span> zoom &nbsp;·&nbsp; <span>Tab</span> solid/mesh
   </div>
 
+  <div id="sel3d-info">
+    <div class="si-title">SELECTED</div>
+    <div id="sel3d-name">—</div>
+    <div id="sel3d-faces">—</div>
+  </div>
   <div id="mesh-info">
     <div class="mi-title">Loaded Mesh</div>
     <div>Triangles <span class="mi-val" id="mi-tris">—</span></div>
@@ -2439,7 +2577,7 @@ function setTool(tool) {
   activeTool = tool;
 
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-  const btnMap={select:'btn-select',line:'btn-line',rect:'btn-rect',polygon:'btn-polygon',offset:'btn-offset',rotate:'btn-rotate',circle:'btn-circle',arc:'btn-arc',fillet:'btn-fillet'};
+  const btnMap={select:'btn-select',line:'btn-line',rect:'btn-rect',polygon:'btn-polygon',offset:'btn-offset',rotate:'btn-rotate',circle:'btn-circle',arc:'btn-arc',fillet:'btn-fillet',chamfer:'btn-chamfer',mirror:'btn-mirror',measure:'btn-measure',pushpull:'btn-pushpull'};
   if(btnMap[tool]) document.getElementById(btnMap[tool]).classList.add('active');
 
   document.getElementById('sb-mode').textContent=tool.toUpperCase();
@@ -2452,6 +2590,14 @@ function setTool(tool) {
   const rotateBar = document.getElementById('rotate-bar');
   if (tool === 'rotate') rotateBar.classList.add('visible');
   // (selection-based visibility handled by updateSelectionProps)
+
+
+  // ── Tool state resets ──────────────────────────────────────────────────────
+  if (activeTool === 'arc')     arcState     = {active:false,phase:0,p1:null,p2:null};
+  if (activeTool === 'circle')  circleState  = {active:false,cx:0,cy:0};
+  if (activeTool === 'fillet')  filletState  = {active:false,firstLine:null};
+  if (activeTool === 'chamfer') chamferState = {active:false,line1:null,line2:null};
+  if (activeTool !== 'measure') measureState = {active:false,p1:null};
 
   const hintMap = {
     select:  'Click line to select · Shift+click multi · <span>Drag</span> selection box · Middle-drag to pan · <span>Del</span> delete',
@@ -3060,16 +3206,25 @@ const C={
 
 function render() {
   const W=canvas.width, H=canvas.height;
+  // In 3D mode the WebGL canvas shows geometry — 2D canvas becomes a transparent overlay
+  // for selection handles, pivot, preview lines, crosshair etc.
+  const in3D = MeshStore.meshes.length > 0 || SolidStore.solids.length > 0;
   ctx.clearRect(0,0,W,H);
-  ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
-  if(showGrid) drawGrid(W,H);
-  drawEntities();
+  if (!in3D) {
+    ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+    if(showGrid) drawGrid(W,H);
+    drawEntities();
+  }
+  // Always draw interactive overlays regardless of mode
   drawRubberBand();
   drawOffsetPreview();
   drawPolyPreview();
   drawCirclePreview();
   drawArcPreview();
   drawRotatePreview();
+  drawChamferPreview();
+  drawMirrorPreview();
+  drawMeasurePreview();
   drawSelBox();
 }
 
@@ -3338,7 +3493,7 @@ function parseDXF(text) {
     if (code === 9  && val === '$INSUNITS') { nextIsInsUnits = true; continue; }
     if (nextIsInsUnits && code === 70) {
       rawInsUnits = parseInt(val, 10);
-      scaleMM = DXF_INSUNITS_TO_MM[rawInsUnits] ?? 1;
+      scaleMM = (DXF_INSUNITS_TO_MM[rawInsUnits] != null ? DXF_INSUNITS_TO_MM[rawInsUnits] : 1);
       nextIsInsUnits = false;
     }
   }
@@ -3583,9 +3738,9 @@ function importDXF(event) {
       0:'0 — Unitless', 1:'1 — Inches', 4:'4 — Millimeters', 2:'2 — Feet',
       5:'5 — Centimeters', 6:'6 — Meters',
     };
-    const rawUnits = parsed.rawInsUnits ?? 0;
+    const rawUnits = (parsed.rawInsUnits != null ? parsed.rawInsUnits : 0);
     const insEl = document.getElementById('dlg-insunits');
-    insEl.textContent = insunitsLabel[rawUnits] ?? `${rawUnits} — see DXF spec`;
+    insEl.textContent = (insunitsLabel[rawUnits] != null ? insunitsLabel[rawUnits] : `${rawUnits} — see DXF spec`);
     // Colour-code: 0 = ambiguous, 1 = inches (common gotcha), 4 = mm fine
     insEl.className = rawUnits===0 ? 'warn' : rawUnits===4 ? 'ok' : '';
 
@@ -3611,7 +3766,7 @@ function commitDxfImport() {
   // parseDXF now returns raw coordinates (no pre-scaling applied).
   let S;
   if (unitSel === 'auto') {
-    S = DXF_INSUNITS_TO_MM[parsed.rawInsUnits] ?? 1;
+    S = (DXF_INSUNITS_TO_MM[parsed.rawInsUnits] != null ? DXF_INSUNITS_TO_MM[parsed.rawInsUnits] : 1);
   } else if (unitSel === 'in') {
     S = 25.4;
   } else {
@@ -3824,45 +3979,105 @@ function stlBBox(triangles) {
 
 // ── STL EXPORT ───────────────────────────────────────────
 function buildSTL(objects) {
-  // Export 2D geometry (lines/polylines) as flat STL for now.
-  // Phase 2: solid kernel output goes here.
-  let out = 'solid kube_export\n';
-  let count = 0;
+  const hasSolids = SolidStore.solids.length > 0 || MeshStore.meshes.length > 0;
+  if (hasSolids) return buildSolidSTL();
+
+  // Fallback: flat 2D lines extruded 1mm
+  const NL = '\n';
+  let out = `solid kube_export${NL}`, count = 0;
   for (const o of objects) {
     if (o.type === 'LINE') {
-      // Extrude flat line 1mm Z for mesh representation
       const {x1,y1,x2,y2} = o;
-      const dz = 1;
-      // Two triangles forming a quad face
-      out += `  facet normal 0 0 1
-    outer loop
-`;
-      out += `    vertex ${x1.toFixed(4)} ${y1.toFixed(4)} 0
-`;
-      out += `    vertex ${x2.toFixed(4)} ${y2.toFixed(4)} 0
-`;
-      out += `    vertex ${x2.toFixed(4)} ${y2.toFixed(4)} ${dz}
-`;
-      out += `    endloop
-  endfacet
-`;
+      out += `  facet normal 0 0 1${NL}    outer loop${NL}`;
+      out += `      vertex ${x1.toFixed(4)} ${y1.toFixed(4)} 0${NL}`;
+      out += `      vertex ${x2.toFixed(4)} ${y2.toFixed(4)} 0${NL}`;
+      out += `      vertex ${x2.toFixed(4)} ${y2.toFixed(4)} 1${NL}`;
+      out += `    endloop${NL}  endfacet${NL}`;
       count++;
     }
   }
-  out += 'endsolid kube_export\n';
+  out += `endsolid kube_export${NL}`;
   return { text: out, count };
 }
 
+function buildSolidSTL() {
+  const tris = [
+    ...SolidStore.allTriangles(),
+    ...MeshStore.meshes.flatMap(m => m.triangles),
+  ];
+  if (!tris.length) return { text: '', count: 0 };
+  const NL = '\n';
+  let out = `solid kube_export${NL}`, count = 0;
+  for (const tri of tris) {
+    const n = tri.normal || {x:0,y:0,z:1};
+    const v = tri.verts;
+    out += `  facet normal ${n.x.toFixed(6)} ${n.y.toFixed(6)} ${n.z.toFixed(6)}${NL}`;
+    out += `    outer loop${NL}`;
+    for (const vert of v)
+      out += `      vertex ${vert.x.toFixed(6)} ${vert.y.toFixed(6)} ${vert.z.toFixed(6)}${NL}`;
+    out += `    endloop${NL}  endfacet${NL}`;
+    count++;
+  }
+  out += `endsolid kube_export${NL}`;
+  return { text: out, count };
+}
+
+
 function exportSTL() {
-  const objs = GeoMemory.objects;
-  if (!objs.length) { showToast('No geometry to export'); return; }
-  const { text, count } = buildSTL(objs);
-  downloadText(text, 'model.stl', 'text/plain');
-  showToast(`Exported ${count} faces · model.stl`);
+  const hasSolids = SolidStore.solids.length > 0 || MeshStore.meshes.length > 0;
+  const result    = hasSolids ? buildSolidSTL() : buildSTL(GeoMemory.objects);
+  if (!result.count) { showToast('No geometry — draw a sketch and extrude first'); return; }
+  downloadText(result.text, 'model.stl', 'text/plain');
+  showToast(`Exported ${result.count.toLocaleString()} triangles · model.stl`);
 }
 
 // ── 3D IMPORT DIALOG ─────────────────────────────────────
 let _import3dParsed = null; // holds parsed STL triangles
+
+
+function exportSTEP() {
+  const hasSolids = SolidStore.solids.length > 0 || MeshStore.meshes.length > 0;
+  if (!hasSolids) { showToast('No solids — draw a sketch and extrude first'); return; }
+  const tris = [
+    ...SolidStore.allTriangles(),
+    ...MeshStore.meshes.flatMap(m => m.triangles),
+  ];
+  const date = new Date().toISOString().split('T')[0];
+  const NL   = '\n';
+  let id     = 1;
+  const lines = [];
+  lines.push(`ISO-10303-21;${NL}HEADER;`);
+  lines.push(`FILE_DESCRIPTION(('KUBE Solid Export - KERFsuite'),'2;1');`);
+  lines.push(`FILE_NAME('model.step','${date}',('KUBE'),('KERFsuite'),'','','');`);
+  lines.push(`FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));`);
+  lines.push(`ENDSEC;${NL}DATA;`);
+
+  const vertMap = new Map();
+  const verts   = [];
+  function getVertId(x, y, z) {
+    const key = `${x.toFixed(4)},${y.toFixed(4)},${z.toFixed(4)}`;
+    if (vertMap.has(key)) return vertMap.get(key);
+    const vid = id++;
+    vertMap.set(key, vid);
+    verts.push({ id: vid, x, y, z });
+    return vid;
+  }
+  const faceVIds = tris.map(tri => tri.verts.map(v => getVertId(v.x, v.y, v.z)));
+  for (const v of verts)
+    lines.push(`#${v.id}=CARTESIAN_POINT('',(${v.x.toFixed(6)},${v.y.toFixed(6)},${v.z.toFixed(6)}));`);
+  const faceIds = faceVIds.map(ids => {
+    const fid = id++;
+    lines.push(`#${fid}=ADVANCED_FACE('',(#${ids[0]},#${ids[1]},#${ids[2]}),.T.);`);
+    return fid;
+  });
+  const shellId  = id++;
+  lines.push(`#${shellId}=CLOSED_SHELL('',(${faceIds.map(f=>'#'+f).join(',')}));`);
+  const solidId  = id++;
+  lines.push(`#${solidId}=MANIFOLD_SOLID_BREP('KUBE_solid',#${shellId});`);
+  lines.push(`ENDSEC;${NL}END-ISO-10303-21;`);
+  downloadText(lines.join(NL), 'model.step', 'text/plain');
+  showToast(`Exported ${tris.length.toLocaleString()} faces · model.step (AP214)`);
+}
 
 function openImport3D() {
   _import3dParsed = null;
@@ -3899,52 +4114,6 @@ function handle3DImport(event) {
   event.target.value = '';
 }
 
-function process3DFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const statusEl = document.getElementById('i3d-status');
-
-  if (ext === 'step' || ext === 'stp') {
-    statusEl.textContent = '⚠ STEP import requires opencascade.js — available in Phase 2.';
-    statusEl.style.color = 'var(--amber)';
-    document.getElementById('i3d-fname').textContent = file.name;
-    document.getElementById('i3d-fmt').textContent = 'STEP (Phase 2)';
-    document.getElementById('import3d-file-info').classList.add('visible');
-    return;
-  }
-
-  if (ext === 'stl') {
-    statusEl.textContent = 'Parsing STL…';
-    statusEl.style.color = '#4db8ff';
-
-    // Try ASCII first, then binary
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target.result;
-        let triangles;
-        if (text.trimStart().startsWith('solid')) {
-          triangles = parseSTLAscii(text);
-          if (!triangles.length) throw new Error('ASCII parse returned 0 triangles — trying binary');
-        }
-        if (!triangles || !triangles.length) {
-          // Binary fallback
-          const binReader = new FileReader();
-          binReader.onload = (be) => {
-            triangles = parseSTLBinary(be.target.result);
-            finishSTLParse(file.name, triangles, statusEl);
-          };
-          binReader.readAsArrayBuffer(file);
-          return;
-        }
-        finishSTLParse(file.name, triangles, statusEl);
-      } catch(err) {
-        statusEl.textContent = 'Parse error: ' + err.message;
-        statusEl.style.color = 'var(--red)';
-      }
-    };
-    reader.readAsText(file);
-  }
-}
 
 function finishSTLParse(name, triangles, statusEl) {
   if (!triangles.length) {
@@ -4030,128 +4199,12 @@ let gl = null; // WebGL2 fallback
 let canvas3d = null, ctx3d = null;
 
 // ── 3D CAMERA ───────────────────────────────────────────
-const cam3 = {
-  // Spherical coords around target — default: TOP view
-  theta:   0,              // azimuth (horizontal)
-  phi:     Math.PI / 2 - 0.01, // elevation — near-straight-down
-  radius:  400,            // distance from target (mm)
-  target:  [0, 0, 0],      // orbit center
-  projection: 'perspective', // 'perspective' | 'orthographic'
-  fov:     45,             // degrees
-  near:    0.1,
-  far:     100000,
-  // Derived matrices (updated each frame)
-  viewMat: null,
-  projMat: null,
-  vpMat:   null,           // view * proj combined
-};
 
 // ── MAT4 MATH LIBRARY ───────────────────────────────────
-const Mat4 = {
-  identity() { return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]); },
 
-  multiply(a, b) {
-    const r = new Float32Array(16);
-    for (let i = 0; i < 4; i++)
-      for (let j = 0; j < 4; j++)
-        for (let k = 0; k < 4; k++)
-          r[i*4+j] += a[i*4+k] * b[k*4+j];
-    return r;
-  },
-
-  perspective(fovDeg, aspect, near, far) {
-    const f = 1 / Math.tan(fovDeg * Math.PI / 360);
-    const nf = 1 / (near - far);
-    return new Float32Array([
-      f/aspect, 0,               0,                  0,
-      0,        f,               0,                  0,
-      0,        0,  (far+near)*nf,                 -1,
-      0,        0, 2*far*near*nf,                  0
-    ]);
-  },
-
-  orthographic(w, h, near, far) {
-    const nf = 1/(near - far);
-    return new Float32Array([
-      2/w, 0,        0,      0,
-      0,   2/h,      0,      0,
-      0,   0,    2*nf,      0,
-      0,   0, (near+far)*nf, 1
-    ]);
-  },
-
-  lookAt(eye, target, up) {
-    const z = Vec3.normalize(Vec3.sub(eye, target));
-    const x = Vec3.normalize(Vec3.cross(up, z));
-    const y = Vec3.cross(z, x);
-    return new Float32Array([
-      x[0], y[0], z[0], 0,
-      x[1], y[1], z[1], 0,
-      x[2], y[2], z[2], 0,
-      -Vec3.dot(x,eye), -Vec3.dot(y,eye), -Vec3.dot(z,eye), 1
-    ]);
-  },
-
-  transformPoint(m, p) {
-    const w = m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15];
-    return [
-      (m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12])/w,
-      (m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13])/w,
-      (m[2]*p[0]+m[6]*p[1]+m[10]*p[2]+m[14])/w,
-    ];
-  },
-
-  transformVec(m, v) {
-    return [
-      m[0]*v[0]+m[4]*v[1]+m[8]*v[2],
-      m[1]*v[0]+m[5]*v[1]+m[9]*v[2],
-      m[2]*v[0]+m[6]*v[1]+m[10]*v[2],
-    ];
-  }
-};
-
-const Vec3 = {
-  add:       (a,b)  => [a[0]+b[0], a[1]+b[1], a[2]+b[2]],
-  sub:       (a,b)  => [a[0]-b[0], a[1]-b[1], a[2]-b[2]],
-  scale:     (a,s)  => [a[0]*s,    a[1]*s,    a[2]*s],
-  dot:       (a,b)  => a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
-  length:    (a)    => Math.sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]),
-  normalize: (a)    => { const l=Vec3.length(a)||1; return [a[0]/l,a[1]/l,a[2]/l]; },
-  cross:     (a,b)  => [
-    a[1]*b[2]-a[2]*b[1],
-    a[2]*b[0]-a[0]*b[2],
-    a[0]*b[1]-a[1]*b[0]
-  ],
-};
 
 // ── CAMERA HELPERS ──────────────────────────────────────
-function cam3EyePos() {
-  const sinPhi = Math.sin(cam3.phi), cosPhi = Math.cos(cam3.phi);
-  const sinTh  = Math.sin(cam3.theta), cosTh = Math.cos(cam3.theta);
-  return [
-    cam3.target[0] + cam3.radius * cosPhi * sinTh,
-    cam3.target[1] + cam3.radius * sinPhi,
-    cam3.target[2] + cam3.radius * cosPhi * cosTh,
-  ];
-}
 
-function updateCam3Matrices() {
-  const eye  = cam3EyePos();
-  const up   = [0, 1, 0];
-  cam3.viewMat = Mat4.lookAt(eye, cam3.target, up);
-
-  const w = canvas3d ? canvas3d.width  : 800;
-  const h = canvas3d ? canvas3d.height : 600;
-  const aspect = w / (h || 1);
-
-  if (cam3.projection === 'perspective') {
-    cam3.projMat = Mat4.perspective(cam3.fov, aspect, cam3.near, cam3.far);
-  } else {
-    const s = cam3.radius * Math.tan(cam3.fov * Math.PI / 360);
-    cam3.projMat = Mat4.orthographic(s * aspect * 2, s * 2, -cam3.far, cam3.far);
-  }
-  cam3.vpMat = Mat4.multiply(cam3.projMat, cam3.viewMat);
-}
 
 function worldToNDC(wx, wy, wz) {
   return Mat4.transformPoint(cam3.vpMat, [wx, wy, wz]);
@@ -4618,29 +4671,6 @@ function hexToRGB(hex) {
   return [r,g,b];
 }
 
-function writeUniforms(color=[0,0.91,0.478], mode=0) {
-  updateCam3Matrices();
-  const identity = Mat4.identity();
-  const lightDir = Vec3.normalize([1.2, 2.0, 1.5]);
-
-  // Pack: vpMat(64) + modelMat(64) + lightDir+pad(16) + color+pad(16) = 160
-  const buf = new Float32Array(40);
-  buf.set(cam3.vpMat,  0);      // vpMat   at offset 0   (16 floats)
-  buf.set(identity,   16);      // modelMat at offset 16  (16 floats)
-  buf[32] = lightDir[0];
-  buf[33] = lightDir[1];
-  buf[34] = lightDir[2];
-  buf[35] = 0;
-  buf[36] = color[0];
-  buf[37] = color[1];
-  buf[38] = color[2];
-  buf[39] = mode;               // mode at offset 39
-
-  if (rendererBackend === 'webgpu' && gpuDevice) {
-    gpuDevice.queue.writeBuffer(gpuUniformBuf, 0, buf);
-  }
-  return buf;
-}
 
 // ── MAIN 3D RENDER ──────────────────────────────────────
 function render3D() {
@@ -4659,67 +4689,9 @@ function render3D() {
     renderCanvas2DSoftware(w, h, modeVal);
   }
 
-  drawAxisGizmo();
 }
 
 // ── WEBGPU RENDER PASS ──────────────────────────────────
-function renderWebGPU(w, h, modeVal, accentRGB) {
-  if (!gpuDevice || !gpuContext || !gpuSolidPipeline) return;
-
-  // Rebuild depth texture if canvas resized
-  if (!gpuDepthTex || gpuDepthTex.width !== w || gpuDepthTex.height !== h) {
-    rebuildDepthTexture();
-  }
-
-  const unifBuf = writeUniforms(accentRGB, modeVal);
-
-  const encoder = gpuDevice.createCommandEncoder();
-  const colorAttach = gpuContext.getCurrentTexture().createView();
-  const depthAttach = gpuDepthTex.createView();
-
-  const pass = encoder.beginRenderPass({
-    colorAttachments: [{
-      view: colorAttach,
-      clearValue: { r: 0, g: 0, b: 0, a: 0 },
-      loadOp:  'clear',
-      storeOp: 'store',
-    }],
-    depthStencilAttachment: {
-      view: depthAttach,
-      depthClearValue: 1.0,
-      depthLoadOp:  'clear',
-      depthStoreOp: 'store',
-    }
-  });
-
-  // ── Solid pass (faces) ──
-  if (gpuMeshBuffers && gpuMeshBuffers.triCount > 0) {
-    pass.setPipeline(gpuSolidPipeline);
-    pass.setBindGroup(0, gpuBindGroup);
-    pass.setVertexBuffer(0, gpuMeshBuffers.vert);
-    pass.draw(gpuMeshBuffers.triCount * 3);
-
-    // ── Edge pass (wireframe) ──
-    pass.setPipeline(gpuMeshPipeline);
-    pass.setBindGroup(0, gpuBindGroup);
-    pass.setVertexBuffer(0, gpuMeshBuffers.edge);
-    pass.draw(gpuMeshBuffers.edgePairs * 2);
-  }
-
-  // Grid pass (edges only, using edge pipeline with grid color)
-  if (gpuGridBuf) {
-    writeUniforms([0.04, 0.12, 0.08], modeVal);
-    pass.setPipeline(gpuMeshPipeline);
-    pass.setBindGroup(0, gpuBindGroup);
-    pass.setVertexBuffer(0, gpuGridBuf);
-    pass.draw(gpuGridCount);
-    // Restore uniforms
-    writeUniforms(accentRGB, modeVal);
-  }
-
-  pass.end();
-  gpuDevice.queue.submit([encoder.finish()]);
-}
 
 // ── WEBGL2 RENDER PASS ──────────────────────────────────
 function renderWebGL2(w, h, modeVal, accentRGB) {
@@ -4850,211 +4822,20 @@ function drawWorkplaneGrid2D() {
 }
 
 // ── AXIS GIZMO ──────────────────────────────────────────
-function drawAxisGizmo() {
-  const gc = document.getElementById('axis-gizmo');
-  if (!gc) return;
-  const g  = gc.getContext('2d');
-  const sz = 72, cx = sz/2, cy = sz/2, len = 26;
-  g.clearRect(0, 0, sz, sz);
-
-  updateCam3Matrices();
-
-  const axes = [
-    { dir:[1,0,0], color:'#ff5566', label:'X' },
-    { dir:[0,1,0], color:'#00e87a', label:'Y' },
-    { dir:[0,0,1], color:'#3399ff', label:'Z' },
-  ];
-
-  // Sort back to front
-  const eye = cam3EyePos();
-  axes.sort((a,b) => {
-    const da = Vec3.dot(a.dir, Vec3.normalize(eye));
-    const db = Vec3.dot(b.dir, Vec3.normalize(eye));
-    return da - db;
-  });
-
-  for (const ax of axes) {
-    const ndc = worldToNDC(...ax.dir);
-    const dx = ndc[0] * len, dy = -ndc[1] * len;
-    g.strokeStyle = ax.color; g.fillStyle = ax.color;
-    g.lineWidth = 2;
-    g.globalAlpha = 0.9;
-    g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx+dx, cy+dy); g.stroke();
-    g.beginPath(); g.arc(cx+dx, cy+dy, 3.5, 0, Math.PI*2); g.fill();
-    g.font = '9px Fira Code, monospace';
-    g.fillText(ax.label, cx+dx+5, cy+dy+4);
-  }
-  g.globalAlpha = 1;
-}
 
 // ── ORBIT MOUSE CONTROLS ────────────────────────────────
-let orbitState = { dragging: false, panning: false, lastX: 0, lastY: 0 };
 
-function init3DOrbitControls() {
-  const cw = document.getElementById('canvas-wrap');
 
-  cw.addEventListener('mousedown', (e) => {
-    if (!is3DMode()) return;
-    if (e.button === 0) { // Left — orbit
-      orbitState.dragging = true;
-      orbitState.lastX = e.clientX; orbitState.lastY = e.clientY;
-      e.preventDefault();
-    } else if (e.button === 1) { // Middle — pan
-      orbitState.panning = true;
-      orbitState.lastX = e.clientX; orbitState.lastY = e.clientY;
-      e.preventDefault();
-    }
-  });
-
-  window.addEventListener('mousemove', (e) => {
-    if (!is3DMode()) return;
-    const dx = e.clientX - orbitState.lastX;
-    const dy = e.clientY - orbitState.lastY;
-    orbitState.lastX = e.clientX; orbitState.lastY = e.clientY;
-
-    if (orbitState.dragging) {
-      cam3.theta -= dx * 0.008;
-      cam3.phi   += dy * 0.008;
-      cam3.phi    = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, cam3.phi));
-      render3D();
-    } else if (orbitState.panning) {
-      // Pan in camera-space XY
-      const eye = cam3EyePos();
-      const forward = Vec3.normalize(Vec3.sub(cam3.target, eye));
-      const right   = Vec3.normalize(Vec3.cross(forward, [0,1,0]));
-      const up      = Vec3.cross(right, forward);
-      const s = cam3.radius * 0.001;
-      cam3.target = Vec3.add(cam3.target, Vec3.scale(right, -dx * s));
-      cam3.target = Vec3.add(cam3.target, Vec3.scale(up,    dy * s));
-      render3D();
-    }
-  });
-
-  window.addEventListener('mouseup', () => {
-    orbitState.dragging = false; orbitState.panning = false;
-  });
-
-  // Scroll — zoom
-  cw.addEventListener('wheel', (e) => {
-    if (!is3DMode()) return;
-    e.preventDefault();
-    cam3.radius *= e.deltaY > 0 ? 1.1 : 0.91;
-    cam3.radius  = Math.max(5, Math.min(50000, cam3.radius));
-    render3D();
-  }, { passive: false });
-
-  // Touch orbit (single finger)
-  let lastTouch = null;
-  cw.addEventListener('touchstart', (e) => {
-    if (!is3DMode() || e.touches.length !== 1) return;
-    lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  });
-  cw.addEventListener('touchmove', (e) => {
-    if (!is3DMode() || e.touches.length !== 1 || !lastTouch) return;
-    e.preventDefault();
-    const dx = e.touches[0].clientX - lastTouch.x;
-    const dy = e.touches[0].clientY - lastTouch.y;
-    lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    cam3.theta -= dx * 0.01;
-    cam3.phi   += dy * 0.01;
-    cam3.phi    = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01, cam3.phi));
-    render3D();
-  }, { passive: false });
-}
 
 // ── VIEW PRESETS ────────────────────────────────────────
-const VIEW_PRESETS = {
-  iso:   { theta: Math.PI/4,     phi: Math.PI/5.5 },
-  top:   { theta: 0,             phi: Math.PI/2 - 0.01 },
-  front: { theta: 0,             phi: 0 },
-  right: { theta: Math.PI/2,     phi: 0 },
-  back:  { theta: Math.PI,       phi: 0 },
-};
 
-function setView3D(name) {
-  const preset = VIEW_PRESETS[name];
-  if (!preset) return;
-  // Animate smoothly
-  const startTheta = cam3.theta, startPhi = cam3.phi;
-  const endTheta = preset.theta, endPhi = preset.phi;
-  const dur = 320, start = performance.now();
-  function tick(now) {
-    const t = Math.min((now - start) / dur, 1);
-    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-    cam3.theta = startTheta + (endTheta - startTheta) * ease;
-    cam3.phi   = startPhi   + (endPhi   - startPhi)   * ease;
-    render3D();
-    if (t < 1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-  // Update active button
-  ['iso','top','front','right'].forEach(id => {
-    const btn = document.getElementById('vp-'+id);
-    if (btn) btn.classList.toggle('active', id === name);
-  });
-}
 
-function toggleProjection() {
-  cam3.projection = cam3.projection === 'perspective' ? 'orthographic' : 'perspective';
-  const btn = document.getElementById('vp-persp');
-  if (btn) {
-    btn.textContent = cam3.projection === 'perspective' ? 'PERSP' : 'ORTHO';
-    btn.classList.toggle('active', cam3.projection === 'orthographic');
-  }
-  showToast('Projection: ' + (cam3.projection === 'perspective' ? 'Perspective' : 'Orthographic'));
-  render3D();
-}
 
 // ── 3D / 2D MODE SWITCHING ──────────────────────────────
 function is3DMode() { return MeshStore.meshes.length > 0; }
 
 // Override commitImport3D to use 3D mesh pipeline
 const _orig_commitImport3D = commitImport3D;
-window.commitImport3D = function() {
-  if (!_import3dParsed || !_import3dParsed.length) return;
-  const triangles = _import3dParsed;
-  // Fix missing normals
-  for (const tri of triangles) {
-    if (!tri.normal || (tri.normal.x === 0 && tri.normal.y === 0 && tri.normal.z === 0)) {
-      const n = computeNormalObj(tri.verts[0], tri.verts[1], tri.verts[2]);
-      tri.normal = n;
-    }
-  }
-
-  const mesh = MeshStore.add('STL Import', triangles);
-  const bbox = mesh.bbox;
-
-  // Center the camera on the mesh
-  cam3.target = [
-    (bbox.minX + bbox.maxX) / 2,
-    (bbox.minY + bbox.maxY) / 2,
-    (bbox.minZ + bbox.maxZ) / 2,
-  ];
-  const maxDim = Math.max(bbox.maxX-bbox.minX, bbox.maxY-bbox.minY, bbox.maxZ-bbox.minZ);
-  cam3.radius  = maxDim * 2.2;
-
-  uploadMeshToGPU(triangles);
-  uploadGridToGPU();
-
-  // Show 3D canvas, hide 2D orbit interference
-  canvas3d.style.display  = 'block';
-  canvas3d.style.pointerEvents = 'none';
-  document.getElementById('main-canvas').style.opacity = '0.08';
-  document.getElementById('orbit-hint').classList.add('visible');
-
-  // Populate mesh info panel
-  document.getElementById('mesh-info').classList.add('visible');
-  document.getElementById('mi-tris').textContent  = triangles.length.toLocaleString();
-  document.getElementById('mi-verts').textContent = (triangles.length*3).toLocaleString();
-  document.getElementById('mi-w').textContent = parseFloat(bbox.w).toFixed(2) + ' mm';
-  document.getElementById('mi-h').textContent = parseFloat(bbox.h).toFixed(2) + ' mm';
-  document.getElementById('mi-d').textContent = parseFloat(bbox.d).toFixed(2) + ' mm';
-
-  closeImport3D();
-  render3D();
-  showToast(`Mesh loaded · ${triangles.length.toLocaleString()} triangles · ${rendererBackend.toUpperCase()}`);
-  _import3dParsed = null;
-};
 
 // ── PUSH/PULL STATE (Phase 3 implements this) ─────────────────
 let pushPullState = { active: false, faceIdx: -1, baseDepth: 0 };
@@ -5075,21 +4856,16 @@ document.addEventListener('keydown', (e) => {
 
 // ── OVERRIDE render() for 3D awareness ──────────────────
 // Patch the existing render function to also call render3D
-(function() {
-  const _orig2Drender = render;
-  window.render = function render() {
-    _orig2Drender();
-    if (is3DMode()) render3D();
-  };
-})();
+
 
 // ── PHASE 2 INIT ────────────────────────────────────────
 async function initPhase2() {
   await initRenderer();
   init3DOrbitControls();
-  // Size the axis gizmo canvas
+  updateNavCube();
+  setTimeout(updateNavCube, 100);
   const gc = document.getElementById('axis-gizmo');
-  if (gc) { gc.width = 72; gc.height = 72; }
+  if (gc) { gc.width = 108; gc.height = 108; }
   console.log(`KUBE Phase 2 renderer: ${rendererBackend}`);
 }
 
@@ -5607,23 +5383,6 @@ const Primitives = {
 // ── ACTIVE PUSH/PULL STATE ───────────────────────────────────
 let _ppSolidId = null, _ppFaceId = null, _ppPreviewMesh = null;
 
-function rebuildScene() {
-  const tris = [
-    ...SolidStore.allTriangles(),
-    ...MeshStore.meshes.flatMap(m => m.triangles)
-  ];
-  if (!tris.length) {
-    if (canvas3d) canvas3d.style.display = 'none';
-    document.getElementById('main-canvas').style.opacity = '1';
-    return;
-  }
-  uploadMeshToGPU(tris);
-  if (canvas3d) {
-    canvas3d.style.display = 'block';
-    document.getElementById('main-canvas').style.opacity = '0.08';
-  }
-  render3D();
-}
 
 // ── FULL PUSH/PULL IMPLEMENTATION ───────────────────────────
 // Replace Phase 2 scaffold
@@ -5779,33 +5538,89 @@ function runBoolean(operation) {
 }
 
 // ── PRIMITIVE TOOL UI ────────────────────────────────────────
+let _primType = null;
+const PRIM_DEFS = {
+  box:      { title:'Box',      fields:[{id:'pp_w',label:'Width',  val:'50'},{id:'pp_h',label:'Height',val:'50'},{id:'pp_d',label:'Depth', val:'50'}] },
+  cylinder: { title:'Cylinder', fields:[{id:'pp_r',label:'Radius', val:'25'},{id:'pp_h',label:'Height',val:'50'},{id:'pp_s',label:'Segs',  val:'32'}] },
+  sphere:   { title:'Sphere',   fields:[{id:'pp_r',label:'Radius', val:'25'},{id:'pp_st',label:'Stacks',val:'16'},{id:'pp_sl',label:'Slices',val:'24'}] },
+};
 function insertPrimitive(type) {
+  _primType = type;
+  const def = PRIM_DEFS[type];
+  if (!def) return;
+  const panel  = document.getElementById('primitive-panel');
+  const title  = document.getElementById('prim-title');
+  const fields = document.getElementById('prim-fields');
+  if (!panel || !title || !fields) { _insertPrimitiveFallback(type); return; }
+  title.textContent = `Insert ${def.title}`;
+  fields.innerHTML  = def.fields.map(f => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="font-size:8px;color:var(--t3);width:52px;flex-shrink:0;
+        letter-spacing:0.08em;font-family:var(--fm);">${f.label}</span>
+      <input id="${f.id}" type="number" value="${f.val}" step="any"
+        style="flex:1;background:rgba(255,255,255,0.06);border:1px solid var(--border);
+        border-radius:4px;color:var(--t1);font-family:var(--fm);font-size:11px;
+        padding:4px 8px;outline:none;"
+        onkeydown="if(event.key==='Enter')commitPrimitive();if(event.key==='Escape')document.getElementById('primitive-panel').style.display='none'">
+      <span style="font-size:8px;color:var(--t3);font-family:var(--fm);">${unitMode}</span>
+    </div>`).join('');
+  panel.style.left      = '50%';
+  panel.style.top       = '50%';
+  panel.style.transform = 'translate(-50%,-50%)';
+  panel.style.display   = 'block';
+  setTimeout(()=>{ const f=fields.querySelector('input'); if(f){f.focus();f.select();} }, 30);
+}
+function _insertPrimitiveFallback(type) {
+  // Prompt fallback if panel HTML missing
   let mesh, name;
+  const u = unitMode;
+  const toMM = v => u==='in' ? v*25.4 : v;
   if (type==='box') {
-    const w=parseFloat(prompt('Box width (mm):','50')||'50');
-    const h=parseFloat(prompt('Box height (mm):','50')||'50');
-    const d=parseFloat(prompt('Box depth (mm):','50')||'50');
-    if (isNaN(w)||isNaN(h)||isNaN(d)) return;
-    mesh=Primitives.box(w,h,d); name=`Box ${w}×${h}×${d}`;
+    const w=toMM(parseFloat(prompt('Width:','50')||'50')), h=toMM(parseFloat(prompt('Height:','50')||'50')), d=toMM(parseFloat(prompt('Depth:','50')||'50'));
+    mesh=Primitives.box(w,h,d); name=`Box`;
   } else if (type==='cylinder') {
-    const r=parseFloat(prompt('Cylinder radius (mm):','25')||'25');
-    const h=parseFloat(prompt('Cylinder height (mm):','50')||'50');
-    if (isNaN(r)||isNaN(h)) return;
-    mesh=Primitives.cylinder(r,h); name=`Cylinder r${r} h${h}`;
+    const r=toMM(parseFloat(prompt('Radius:','25')||'25')), h=toMM(parseFloat(prompt('Height:','50')||'50'));
+    mesh=Primitives.cylinder(r,h); name=`Cylinder`;
   } else if (type==='sphere') {
-    const r=parseFloat(prompt('Sphere radius (mm):','25')||'25');
-    if (isNaN(r)) return;
-    mesh=Primitives.sphere(r); name=`Sphere r${r}`;
+    const r=toMM(parseFloat(prompt('Radius:','25')||'25'));
+    mesh=Primitives.sphere(r); name=`Sphere`;
   }
   if (!mesh) return;
   const solid = SolidStore.add(name, mesh);
-
-  // Frame camera on it
-  const bbox = { minX:-60,maxX:60,minY:-60,maxY:60,minZ:0,maxZ:60 };
-  cam3.target = [0,0,30]; cam3.radius = 300;
-
-  OpHistory.push('PRIMITIVE', {type, name}, solid.id);
-  rebuildScene();
+  cam3.target=[0,0,30]; cam3.radius=300;
+  OpHistory.push('PRIMITIVE',{type,name},solid.id);
+  rebuildScene(); updateSolidList();
+  showToast(`Inserted ${name}`);
+}
+function commitPrimitive() {
+  const type = _primType;
+  const def  = PRIM_DEFS[type];
+  if (!def || !type) return;
+  const vals = {};
+  const toMM = v => unitMode==='in' ? v*25.4 : v;
+  for (const f of def.fields) {
+    const el = document.getElementById(f.id);
+    vals[f.id] = el ? parseFloat(el.value) : parseFloat(f.val);
+    if (isNaN(vals[f.id])) { showToast(`Invalid: ${f.label}`); return; }
+  }
+  let mesh, name;
+  if (type==='box') {
+    const w=toMM(vals.pp_w),h=toMM(vals.pp_h),d=toMM(vals.pp_d);
+    mesh=Primitives.box(w,h,d); name=`Box ${vals.pp_w}×${vals.pp_h}×${vals.pp_d}`;
+  } else if (type==='cylinder') {
+    const r=toMM(vals.pp_r),h=toMM(vals.pp_h),segs=Math.round(vals.pp_s)||32;
+    mesh=Primitives.cylinder(r,h,segs); name=`Cylinder r${vals.pp_r}`;
+  } else if (type==='sphere') {
+    const r=toMM(vals.pp_r),st=Math.round(vals.pp_st)||16,sl=Math.round(vals.pp_sl)||24;
+    mesh=Primitives.sphere(r,st,sl); name=`Sphere r${vals.pp_r}`;
+  }
+  if (!mesh) return;
+  const panel = document.getElementById('primitive-panel');
+  if (panel) panel.style.display='none';
+  const solid = SolidStore.add(name, mesh);
+  cam3.target=[0,0,30]; cam3.radius=300;
+  OpHistory.push('PRIMITIVE',{type,name},solid.id);
+  rebuildScene(); updateSolidList();
   showToast(`Inserted ${name}`);
 }
 
@@ -5818,36 +5633,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── UPDATE .KBE SERIALIZATION to include solids + history ───
-GeoMemory.serialize = function() {
-  return JSON.stringify({
-    format:       'KUBE',
-    version:      '1.1',
-    units:        'mm',
-    displayUnits: unitMode,
-    workplane:    activePlane,
-    viewMode:     viewMode,
-    nextId:       this.nextId,
-    objects:      this.objects,
-    solids:       SolidStore.serialize(),
-    history:      OpHistory.serialize(),
-  }, null, 2);
-};
 
-GeoMemory.deserialize = function(s) {
-  try {
-    const d = JSON.parse(s);
-    this.objects = d.objects || [];
-    this.nextId  = d.nextId  || 1;
-    if (d.solids)  SolidStore.deserialize(d.solids);
-    if (d.history) OpHistory.deserialize(d.history);
-    if (d.displayUnits && d.displayUnits !== unitMode) toggleUnits();
-    if (d.workplane) setWorkplane(d.workplane);
-    if (d.viewMode && d.viewMode !== viewMode) toggleViewMode();
-    rebuildScene();
-    updateHistoryPanel();
-    return true;
-  } catch(e) { console.error('KBE load error:', e); return false; }
-};
 
 // ── PHASE 3 INIT ────────────────────────────────────────────
 function initPhase3() {
@@ -5857,24 +5643,1338 @@ function initPhase3() {
     if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
     if (e.key==='e'||e.key==='E') { setTool('pushpull'); activatePushPull(); }
   });
+  updateSolidList();
   console.log('KUBE Phase 3: Solid kernel ready');
 }
 
 
 
+// ═══════════════════════════════════════════════════════════
+//  KUBE v1.2 — PHASE 4: Corrected Renderer + Arcball +
+//              STEP (opencascade.js) + manifold booleans +
+//              Per-solid GPU draws + Native .kbe v2
+// ═══════════════════════════════════════════════════════════
+
+// ── CORRECTED MAT4 (column-major, WebGPU depth [0,1]) ───────
+// Replaces Phase 2 Mat4 — same API, correct math
+const Mat4 = {
+  identity() {
+    return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+  },
+
+  // Column-major multiply: result[col*4+row]
+  multiply(a, b) {
+    const r = new Float32Array(16);
+    for (let col = 0; col < 4; col++)
+      for (let row = 0; row < 4; row++)
+        for (let k = 0; k < 4; k++)
+          r[col*4+row] += a[k*4+row] * b[col*4+k];
+    return r;
+  },
+
+  // WebGPU perspective: depth range [0,1], Y-down NDC corrected
+  perspective(fovDeg, aspect, near, far) {
+    const f  = 1.0 / Math.tan(fovDeg * Math.PI / 360);
+    const rz = far / (near - far);
+    return new Float32Array([
+      f/aspect, 0,  0,          0,
+      0,        f,  0,          0,
+      0,        0,  rz,        -1,
+      0,        0,  near*rz,    0,
+    ]);
+  },
+
+  // WebGPU orthographic: depth [0,1]
+  orthographic(left, right, bottom, top, near, far) {
+    const rl = 1/(right-left), tb = 1/(top-bottom), fn = 1/(near-far);
+    return new Float32Array([
+      2*rl,          0,           0,     0,
+      0,             2*tb,        0,     0,
+      0,             0,           fn,    0,
+      -(right+left)*rl, -(top+bottom)*tb, near*fn, 1,
+    ]);
+  },
+
+  // Column-major lookAt
+  lookAt(eye, center, up) {
+    const f = Vec3.normalize(Vec3.sub(center, eye));
+    const r = Vec3.normalize(Vec3.cross(f, up));
+    const u = Vec3.cross(r, f);
+    return new Float32Array([
+       r[0],  u[0], -f[0], 0,
+       r[1],  u[1], -f[1], 0,
+       r[2],  u[2], -f[2], 0,
+      -Vec3.dot(r,eye), -Vec3.dot(u,eye), Vec3.dot(f,eye), 1,
+    ]);
+  },
+
+  // Rotation matrix from quaternion
+  fromQuat(q) {
+    const [x,y,z,w] = q;
+    const x2=x+x, y2=y+y, z2=z+z;
+    const xx=x*x2, xy=x*y2, xz=x*z2;
+    const yy=y*y2, yz=y*z2, zz=z*z2;
+    const wx=w*x2, wy=w*y2, wz=w*z2;
+    return new Float32Array([
+      1-(yy+zz), xy+wz,     xz-wy,     0,
+      xy-wz,     1-(xx+zz), yz+wx,     0,
+      xz+wy,     yz-wx,     1-(xx+yy), 0,
+      0,         0,         0,         1,
+    ]);
+  },
+
+  translation(tx, ty, tz) {
+    const m = Mat4.identity();
+    m[12]=tx; m[13]=ty; m[14]=tz;
+    return m;
+  },
+
+  transformPoint(m, p) {
+    const w = m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15];
+    return [
+      (m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12])/w,
+      (m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13])/w,
+      (m[2]*p[0]+m[6]*p[1]+m[10]*p[2]+m[14])/w,
+    ];
+  },
+};
+
+// ── CORRECTED Vec3 ───────────────────────────────────────────
+const Vec3 = {
+  add:       (a,b)  => [a[0]+b[0], a[1]+b[1], a[2]+b[2]],
+  sub:       (a,b)  => [a[0]-b[0], a[1]-b[1], a[2]-b[2]],
+  scale:     (a,s)  => [a[0]*s,    a[1]*s,    a[2]*s],
+  dot:       (a,b)  => a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+  length:    (a)    => Math.sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]),
+  normalize: (a)    => { const l=Vec3.length(a)||1; return [a[0]/l,a[1]/l,a[2]/l]; },
+  cross:     (a,b)  => [
+    a[1]*b[2]-a[2]*b[1],
+    a[2]*b[0]-a[0]*b[2],
+    a[0]*b[1]-a[1]*b[0],
+  ],
+  negate: (a) => [-a[0],-a[1],-a[2]],
+};
+
+// ── QUATERNION MATH ──────────────────────────────────────────
+const Quat = {
+  identity: () => [0,0,0,1],
+
+  fromAxisAngle(axis, angle) {
+    const s = Math.sin(angle/2);
+    return [axis[0]*s, axis[1]*s, axis[2]*s, Math.cos(angle/2)];
+  },
+
+  multiply(a, b) {
+    return [
+      a[3]*b[0]+a[0]*b[3]+a[1]*b[2]-a[2]*b[1],
+      a[3]*b[1]-a[0]*b[2]+a[1]*b[3]+a[2]*b[0],
+      a[3]*b[2]+a[0]*b[1]-a[1]*b[0]+a[2]*b[3],
+      a[3]*b[3]-a[0]*b[0]-a[1]*b[1]-a[2]*b[2],
+    ];
+  },
+
+  normalize(q) {
+    const l = Math.sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3])||1;
+    return [q[0]/l,q[1]/l,q[2]/l,q[3]/l];
+  },
+
+  // Rotate vector by quaternion
+  rotateVec(q, v) {
+    const [qx,qy,qz,qw] = q;
+    const [vx,vy,vz] = v;
+    const tx = 2*(qy*vz-qz*vy);
+    const ty = 2*(qz*vx-qx*vz);
+    const tz = 2*(qx*vy-qy*vx);
+    return [
+      vx+qw*tx+qy*tz-qz*ty,
+      vy+qw*ty+qz*tx-qx*tz,
+      vz+qw*tz+qx*ty-qy*tx,
+    ];
+  },
+
+  // Slerp
+  slerp(a, b, t) {
+    let dot = a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3];
+    if (dot < 0) { b = b.map(v=>-v); dot = -dot; }
+    if (dot > 0.9995) {
+      const r = a.map((v,i)=>v+(b[i]-v)*t);
+      return Quat.normalize(r);
+    }
+    const theta0 = Math.acos(dot);
+    const theta  = theta0 * t;
+    const s0 = Math.cos(theta) - dot*Math.sin(theta)/Math.sin(theta0);
+    const s1 = Math.sin(theta)/Math.sin(theta0);
+    return a.map((v,i)=>s0*v+s1*b[i]);
+  },
+};
+
+// ── ARCBALL ORBIT CAMERA ─────────────────────────────────────
+// Replaces spherical theta/phi — no gimbal lock
+const Arcball = {
+  orientation: Quat.identity(), // accumulated rotation quaternion
+  target:      [0, 0, 0],
+  radius:      400,
+  projection:  'perspective',
+  fov:         45,
+  near:        0.1,
+  far:         100000,
+
+  // Convert screen XY to unit sphere point
+  _screenToSphere(x, y, w, h) {
+    const nx = (x / w) * 2 - 1;
+    const ny = 1 - (y / h) * 2;
+    const r2 = nx*nx + ny*ny;
+    if (r2 <= 1) return Vec3.normalize([nx, ny, Math.sqrt(1-r2)]);
+    return Vec3.normalize([nx/Math.sqrt(r2), ny/Math.sqrt(r2), 0]);
+  },
+
+  startDrag(x, y, w, h) {
+    this._dragStart = this._screenToSphere(x, y, w, h);
+    this._orientStart = [...this.orientation];
+  },
+
+  drag(x, y, w, h) {
+    if (!this._dragStart) return false;
+    const cur = this._screenToSphere(x, y, w, h);
+    const dot  = Math.min(1, Vec3.dot(this._dragStart, cur));
+    const angle = Math.acos(dot) * 2;
+    if (Math.abs(angle) < 1e-6) return false;
+    const axis = Vec3.normalize(Vec3.cross(this._dragStart, cur));
+    if (!isFinite(axis[0])) return false;
+    // Axis is in camera space — rotate to world space
+    const worldAxis = Quat.rotateVec(Quat.normalize([
+      -this._orientStart[0], -this._orientStart[1],
+      -this._orientStart[2],  this._orientStart[3],
+    ]), axis);
+    const delta = Quat.fromAxisAngle(worldAxis, angle);
+    this.orientation = Quat.normalize(Quat.multiply(delta, this._orientStart));
+    updateNavCube();
+    return true;
+  },
+
+  endDrag() { this._dragStart = null; },
+
+  // Pan in screen-aligned world plane
+  pan(dx, dy, w, h) {
+    const scale = this.radius * 0.002;
+    const right = Quat.rotateVec(this.orientation, [1,0,0]);
+    const up    = Quat.rotateVec(this.orientation, [0,1,0]);
+    this.target = Vec3.sub(
+      Vec3.add(this.target, Vec3.scale(right, -dx*scale)),
+      Vec3.scale(up, -dy*scale)
+    );
+  },
+
+  zoom(delta) {
+    this.radius *= delta > 0 ? 1.12 : 0.89;
+    this.radius  = Math.max(1, Math.min(100000, this.radius));
+  },
+
+  eyePos() {
+    // Eye = target + orientation * (0, 0, radius)
+    const back = Quat.rotateVec(this.orientation, [0, 0, this.radius]);
+    return Vec3.add(this.target, back);
+  },
+
+  upVec() {
+    return Quat.rotateVec(this.orientation, [0, 1, 0]);
+  },
+
+  getViewMat() {
+    return Mat4.lookAt(this.eyePos(), this.target, this.upVec());
+  },
+
+  getProjMat(w, h) {
+    const aspect = w / (h||1);
+    if (this.projection === 'perspective') {
+      return Mat4.perspective(this.fov, aspect, this.near, this.far);
+    } else {
+      // Orthographic: scale by radius so object fills view reasonably
+      const s = this.radius * Math.tan(this.fov * Math.PI / 360);
+      return Mat4.orthographic(-s*aspect, s*aspect, -s, s, -this.far, this.far);
+    }
+  },
+
+  getVPMat(w, h) {
+    return Mat4.multiply(this.getProjMat(w,h), this.getViewMat());
+  },
+
+  // Preset views via quaternion — no gimbal lock
+  setPreset(name) {
+    const presets = {
+      iso:   Quat.normalize(Quat.multiply(
+               Quat.fromAxisAngle([0,1,0],  Math.PI/4),
+               Quat.fromAxisAngle([1,0,0], -Math.PI/6))),
+      top:   Quat.fromAxisAngle([1,0,0], -Math.PI/2 + 0.001),
+      front: Quat.identity(),
+      right: Quat.fromAxisAngle([0,1,0],  Math.PI/2),
+      back:  Quat.fromAxisAngle([0,1,0],  Math.PI),
+      left:  Quat.fromAxisAngle([0,1,0], -Math.PI/2),
+      bot:   Quat.fromAxisAngle([1,0,0],  Math.PI/2),
+      // 8 corner-isometric views — viewing FROM each corner toward origin
+      'iso-tfr': Quat.normalize(Quat.multiply(Quat.fromAxisAngle([0,1,0],  Math.PI/4),    Quat.fromAxisAngle([1,0,0], -Math.PI/6))),
+      'iso-tfl': Quat.normalize(Quat.multiply(Quat.fromAxisAngle([0,1,0], -Math.PI/4),    Quat.fromAxisAngle([1,0,0], -Math.PI/6))),
+      'iso-tbr': Quat.normalize(Quat.multiply(Quat.fromAxisAngle([0,1,0],  3*Math.PI/4),  Quat.fromAxisAngle([1,0,0], -Math.PI/6))),
+      'iso-tbl': Quat.normalize(Quat.multiply(Quat.fromAxisAngle([0,1,0], -3*Math.PI/4),  Quat.fromAxisAngle([1,0,0], -Math.PI/6))),
+      'iso-bfr': Quat.normalize(Quat.multiply(Quat.fromAxisAngle([0,1,0],  Math.PI/4),    Quat.fromAxisAngle([1,0,0],  Math.PI/6))),
+      'iso-bfl': Quat.normalize(Quat.multiply(Quat.fromAxisAngle([0,1,0], -Math.PI/4),    Quat.fromAxisAngle([1,0,0],  Math.PI/6))),
+      'iso-bbr': Quat.normalize(Quat.multiply(Quat.fromAxisAngle([0,1,0],  3*Math.PI/4),  Quat.fromAxisAngle([1,0,0],  Math.PI/6))),
+      'iso-bbl': Quat.normalize(Quat.multiply(Quat.fromAxisAngle([0,1,0], -3*Math.PI/4),  Quat.fromAxisAngle([1,0,0],  Math.PI/6))),
+    };
+    const target = presets[name] || Quat.identity();
+    // Animate slerp
+    const start = [...this.orientation];
+    const dur = 300, t0 = performance.now();
+    const tick = (now) => {
+      const t = Math.min((now-t0)/dur, 1);
+      const ease = t<0.5 ? 2*t*t : -1+(4-2*t)*t;
+      Arcball.orientation = Quat.slerp(start, target, ease);
+      render3D();
+      updateNavCube();
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    // Update button
+    ['iso','top','front','right'].forEach(id => {
+      const b = document.getElementById('vp-'+id);
+      if (b) b.classList.toggle('active', id===name);
+    });
+    showToast(`View: ${name.toUpperCase()}`);
+  },
+
+  frameScene(bbox) {
+    if (!bbox) return;
+    this.target = [
+      (bbox.minX+bbox.maxX)/2,
+      (bbox.minY+bbox.maxY)/2,
+      (bbox.minZ+bbox.maxZ)/2,
+    ];
+    const maxDim = Math.max(
+      bbox.maxX-bbox.minX,
+      bbox.maxY-bbox.minY,
+      bbox.maxZ-bbox.minZ
+    );
+    this.radius = maxDim * 2.0 || 400;
+  },
+};
+
+// ── REPLACE cam3 with Arcball (keep cam3 as alias for compat) ─
+const cam3 = Arcball; // alias — all existing cam3.xxx still works
+
+// ── FIXED updateCam3Matrices ─────────────────────────────────
+function updateCam3Matrices() {
+  const w = canvas3d ? canvas3d.width  : 800;
+  const h = canvas3d ? canvas3d.height : 600;
+  cam3.viewMat = Arcball.getViewMat();
+  cam3.projMat = Arcball.getProjMat(w, h);
+  cam3.vpMat   = Mat4.multiply(cam3.projMat, cam3.viewMat);
+}
+
+function cam3EyePos() { return Arcball.eyePos(); }
+
+// ── FIXED setView3D ───────────────────────────────────────────
+function setView3D(name) { Arcball.setPreset(name); }
+
+// ── FIXED toggleProjection ────────────────────────────────────
+function toggleProjection() {
+  Arcball.projection = Arcball.projection === 'perspective' ? 'orthographic' : 'perspective';
+  const btn = document.getElementById('vp-persp');
+  if (btn) {
+    btn.textContent = Arcball.projection === 'perspective' ? 'PERSP' : 'ORTHO';
+    btn.classList.toggle('active', Arcball.projection === 'orthographic');
+  }
+  showToast('Projection: ' + (Arcball.projection === 'perspective' ? 'Perspective' : 'Orthographic'));
+  render3D();
+}
+
+// ── FIXED ORBIT CONTROLS (uses Arcball) ──────────────────────
+function init3DOrbitControls() {
+  const cw = document.getElementById('canvas-wrap');
+  let panStart = null;
+
+  cw.addEventListener('mousedown', (e) => {
+    if (!is3DMode()) return;
+    const rect = cw.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (e.button === 0) {
+      Arcball.startDrag(x, y, cw.clientWidth, cw.clientHeight);
+      e.preventDefault();
+    } else if (e.button === 1 || e.button === 2) {
+      panStart = { x: e.clientX, y: e.clientY };
+      e.preventDefault();
+    }
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!is3DMode()) return;
+    const cw2 = document.getElementById('canvas-wrap');
+    const rect = cw2.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (Arcball._dragStart) {
+      if (Arcball.drag(x, y, cw2.clientWidth, cw2.clientHeight)) render3D();
+    }
+    if (panStart) {
+      const dx = e.clientX - panStart.x;
+      const dy = e.clientY - panStart.y;
+      panStart = { x: e.clientX, y: e.clientY };
+      Arcball.pan(dx, dy, cw2.clientWidth, cw2.clientHeight);
+      render3D();
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    Arcball.endDrag();
+    panStart = null;
+  });
+
+  // Right-click pan (prevent context menu in 3D mode)
+  cw.addEventListener('contextmenu', (e) => { if (is3DMode()) e.preventDefault(); });
+
+  cw.addEventListener('wheel', (e) => {
+    if (!is3DMode()) return;
+    e.preventDefault();
+    Arcball.zoom(e.deltaY);
+    render3D();
+  }, { passive: false });
+
+  // Touch: 1-finger orbit, 2-finger pinch zoom + pan
+  let touches = {};
+  let lastPinchDist = 0;
+
+  cw.addEventListener('touchstart', (e) => {
+    if (!is3DMode()) return;
+    e.preventDefault();
+    const cw2 = document.getElementById('canvas-wrap');
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      Arcball.startDrag(t.clientX, t.clientY, cw2.clientWidth, cw2.clientHeight);
+    } else if (e.touches.length === 2) {
+      Arcball.endDrag();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist = Math.sqrt(dx*dx+dy*dy);
+    }
+  }, { passive: false });
+
+  cw.addEventListener('touchmove', (e) => {
+    if (!is3DMode()) return;
+    e.preventDefault();
+    const cw2 = document.getElementById('canvas-wrap');
+    if (e.touches.length === 1 && Arcball._dragStart) {
+      const t = e.touches[0];
+      if (Arcball.drag(t.clientX, t.clientY, cw2.clientWidth, cw2.clientHeight)) render3D();
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      Arcball.zoom(lastPinchDist - dist);
+      lastPinchDist = dist;
+      render3D();
+    }
+  }, { passive: false });
+
+  cw.addEventListener('touchend', () => { Arcball.endDrag(); });
+}
+
+// ── FIXED UNIFORM WRITER (correct color channel) ─────────────
+function writeUniforms(color=[0,0.91,0.478], mode=0) {
+  updateCam3Matrices();
+  const identity = Mat4.identity();
+  const lightDir = Vec3.normalize([0.6, 1.0, 0.8]);
+  // UBO layout: vpMat(64) + modelMat(64) + lightDir(16) + color+mode(16) = 160 bytes
+  const buf = new Float32Array(40);
+  buf.set(cam3.vpMat, 0);
+  buf.set(identity,  16);
+  buf[32] = lightDir[0]; buf[33] = lightDir[1]; buf[34] = lightDir[2]; buf[35] = 0;
+  buf[36] = color[0];    buf[37] = color[1];    buf[38] = color[2];    buf[39] = mode;
+  if (rendererBackend === 'webgpu' && gpuDevice) {
+    gpuDevice.queue.writeBuffer(gpuUniformBuf, 0, buf);
+  }
+  return buf;
+}
+
+// ── PER-SOLID GPU BUFFER MANAGEMENT ─────────────────────────
+const SolidGPU = {
+  buffers: new Map(), // solidId → { vert, edge, triCount, edgePairs }
+
+  upload(solid) {
+    const tris = solid.mesh.toTriangles();
+    if (!tris.length) return;
+    const { solidF32, edgeF32, triCount, edgePairs } = buildMeshBuffers(tris);
+    // Clean up old buffers
+    this.destroy(solid.id);
+    if (rendererBackend === 'webgpu' && gpuDevice) {
+      const vertBuf = gpuDevice.createBuffer({
+        size: solidF32.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      const edgBuf = gpuDevice.createBuffer({
+        size: edgeF32.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      gpuDevice.queue.writeBuffer(vertBuf, 0, solidF32);
+      gpuDevice.queue.writeBuffer(edgBuf,  0, edgeF32);
+      this.buffers.set(solid.id, { vert: vertBuf, edge: edgBuf, triCount, edgePairs });
+    } else if (rendererBackend === 'webgl2' && gl) {
+      const vb = gl.createBuffer(); const eb = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, solidF32, gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ARRAY_BUFFER, eb); gl.bufferData(gl.ARRAY_BUFFER, edgeF32,  gl.STATIC_DRAW);
+      this.buffers.set(solid.id, { vert: vb, edge: eb, triCount, edgePairs, gl: true });
+    } else {
+      // Canvas2D: store triangles directly
+      this.buffers.set(solid.id, { tris, triCount, canvas2d: true });
+    }
+  },
+
+  destroy(id) {
+    const b = this.buffers.get(id);
+    if (!b) return;
+    if (b.vert && b.vert.destroy) { b.vert.destroy(); b.edge.destroy(); }
+    this.buffers.delete(id);
+  },
+
+  destroyAll() {
+    for (const [id] of this.buffers) this.destroy(id);
+  },
+};
+
+// ── REVISED rebuildScene ─────────────────────────────────────
+function rebuildScene() {
+  // Upload each solid individually for per-solid draw calls
+  for (const solid of SolidStore.solids) {
+    if (solid.visible) SolidGPU.upload(solid);
+    else SolidGPU.destroy(solid.id);
+  }
+  // STL meshes still go into MeshStore (flat triangles, no topology)
+  const allTris = MeshStore.meshes.flatMap(m => m.triangles);
+  if (allTris.length) uploadMeshToGPU(allTris);
+
+  const hasGeometry = SolidStore.solids.length || MeshStore.meshes.length;
+  if (canvas3d) {
+    canvas3d.style.display = hasGeometry ? 'block' : 'none';
+    document.getElementById('main-canvas').style.opacity = hasGeometry ? '0.08' : '1';
+  }
+  if (hasGeometry) render3D();
+  render();
+}
+
+// ── REVISED renderWebGPU (per-solid draw calls) ───────────────
+function renderWebGPU(w, h, modeVal, accentRGB) {
+  if (!gpuDevice || !gpuContext || !gpuSolidPipeline) return;
+  if (!gpuDepthTex || gpuDepthTex.width !== w || gpuDepthTex.height !== h) rebuildDepthTexture();
+
+  const encoder = gpuDevice.createCommandEncoder();
+  const pass = encoder.beginRenderPass({
+    colorAttachments: [{
+      view: gpuContext.getCurrentTexture().createView(),
+      clearValue: { r: 0.024, g: 0.031, b: 0.055, a: 1 },
+      loadOp: 'clear', storeOp: 'store',
+    }],
+    depthStencilAttachment: {
+      view: gpuDepthTex.createView(),
+      depthClearValue: 1.0, depthLoadOp: 'clear', depthStoreOp: 'store',
+    },
+  });
+
+  // Grid
+  if (gpuGridBuf) {
+    writeUniforms([0.07, 0.10, 0.14], modeVal);
+    pass.setPipeline(gpuMeshPipeline);
+    pass.setBindGroup(0, gpuBindGroup);
+    pass.setVertexBuffer(0, gpuGridBuf);
+    pass.draw(gpuGridCount);
+  }
+
+  // Per-solid draw
+  for (const solid of SolidStore.solids) {
+    if (!solid.visible) continue;
+    const buf = SolidGPU.buffers.get(solid.id);
+    if (!buf || !buf.triCount) continue;
+    const col = hexToRGB(solid.color || '#00e87a');
+    const isSel = solid.id === selectedSolidId;
+    const drawCol = isSel ? [0.4, 1.0, 0.6] : col;
+    writeUniforms(drawCol, modeVal);
+    pass.setPipeline(gpuSolidPipeline);
+    pass.setBindGroup(0, gpuBindGroup);
+    pass.setVertexBuffer(0, buf.vert);
+    pass.draw(buf.triCount * 3);
+    // Edges
+    writeUniforms(isSel ? [0.3, 0.9, 0.5] : drawCol, modeVal);
+    pass.setPipeline(gpuMeshPipeline);
+    pass.setBindGroup(0, gpuBindGroup);
+    pass.setVertexBuffer(0, buf.edge);
+    pass.draw(buf.edgePairs * 2);
+  }
+
+  // STL mesh (flat, not in SolidStore)
+  if (gpuMeshBuffers && gpuMeshBuffers.triCount > 0) {
+    writeUniforms(accentRGB, modeVal);
+    pass.setPipeline(gpuSolidPipeline);
+    pass.setBindGroup(0, gpuBindGroup);
+    pass.setVertexBuffer(0, gpuMeshBuffers.vert);
+    pass.draw(gpuMeshBuffers.triCount * 3);
+    pass.setPipeline(gpuMeshPipeline);
+    pass.setBindGroup(0, gpuBindGroup);
+    pass.setVertexBuffer(0, gpuMeshBuffers.edge);
+    pass.draw(gpuMeshBuffers.edgePairs * 2);
+  }
+
+  pass.end();
+  gpuDevice.queue.submit([encoder.finish()]);
+}
+
+// ── SOLID SELECTION ───────────────────────────────────────────
+let selectedSolidId = null;
+
+function selectSolid(id) {
+  selectedSolidId = id;
+  const solid = SolidStore.getById(id);
+  const el = document.getElementById('sel3d-info');
+  if (el && solid) {
+    el.classList.add('visible');
+    const tris = solid.mesh.toTriangles().length;
+    document.getElementById('sel3d-name').textContent  = solid.name;
+    document.getElementById('sel3d-faces').textContent = tris + ' triangles';
+  }
+  render3D();
+}
+
+// Click → select solid (if not in push/pull mode)
+document.getElementById('canvas-wrap').addEventListener('click', (e) => {
+  if (!is3DMode() || pushPullState.active) return;
+  if (!canvas3d) return;
+  const rect = canvas3d.getBoundingClientRect();
+  const hit = pickFace(e.clientX - rect.left, e.clientY - rect.top);
+  if (hit) {
+    selectSolid(hit.solidId);
+  } else {
+    selectedSolidId = null;
+    const el = document.getElementById('sel3d-info');
+    if (el) el.classList.remove('visible');
+    render3D();
+  }
+}, false);
+
+// ── OPENCASCADE.JS STEP INTEGRATION ──────────────────────────
+let occtReady = false;
+let occtModule = null;
+const OCCT_CDN = 'https://cdn.jsdelivr.net/npm/opencascade.js@2.0.0-beta.5/dist/opencascade.full.js';
+
+async function loadOCCT() {
+  if (occtReady) return occtModule;
+  setGPUStatus('fb', 'Loading OCCT…');
+  showToast('Loading opencascade.js (~28MB) — first time only…');
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = OCCT_CDN;
+    script.onload = async () => {
+      try {
+        // opencascade.js exposes global opencascade
+        occtModule = await opencascade({ locateFile: f => `https://cdn.jsdelivr.net/npm/opencascade.js@2.0.0-beta.5/dist/${f}` });
+        occtReady = true;
+        setGPUStatus('ok', rendererBackend.toUpperCase() + ' · OCCT');
+        showToast('opencascade.js ready');
+        resolve(occtModule);
+      } catch(err) {
+        reject(err);
+      }
+    };
+    script.onerror = () => reject(new Error('Failed to load opencascade.js'));
+    document.head.appendChild(script);
+  });
+}
+
+async function importSTEP(file) {
+  const statusEl = document.getElementById('i3d-status');
+  statusEl.textContent = 'Loading opencascade.js…';
+  statusEl.style.color = 'var(--amber)';
+
+  try {
+    const oc = await loadOCCT();
+    statusEl.textContent = 'Parsing STEP file…';
+
+    const buf = await file.arrayBuffer();
+    const uint8 = new Uint8Array(buf);
+
+    // Write to OCCT virtual FS
+    oc.FS.writeFile('/model.step', uint8);
+
+    // Read STEP
+    const reader = new oc.STEPControl_Reader_1();
+    const status = reader.ReadFile('/model.step');
+    if (status !== oc.IFSelect_ReturnStatus.IFSelect_RetDone) {
+      throw new Error('STEP read failed — invalid file or unsupported version');
+    }
+
+    reader.TransferRoots(new oc.Message_ProgressRange_1());
+    const shape = reader.OneShape();
+
+    // Tessellate
+    const linDefl  = 0.1;  // 0.1mm chord deflection
+    const angDefl  = 0.5;  // 0.5 rad angular deflection
+    new oc.BRepMesh_IncrementalMesh_2(shape, linDefl, false, angDefl, true);
+
+    // Extract triangles
+    const triangles = [];
+    let faceCount = 0;
+    const xpFace = new oc.TopExp_Explorer_2(shape, oc.TopAbs_ShapeEnum.TopAbs_FACE, oc.TopAbs_ShapeEnum.TopAbs_SHAPE);
+    while (xpFace.More()) {
+      const face = oc.TopoDS.Face_1(xpFace.Current());
+      const loc  = face.Location_1();
+      const tri  = oc.BRep_Tool.Triangulation(face, loc);
+      if (!tri.IsNull()) {
+        const nTri = tri.get().NbTriangles();
+        const nNodes = tri.get().NbNodes();
+        const orient = face.Orientation_1();
+        for (let t = 1; t <= nTri; t++) {
+          const triangle = tri.get().Triangle(t);
+          let [n1, n2, n3] = [triangle.Value(1), triangle.Value(2), triangle.Value(3)];
+          if (orient === oc.TopAbs_Orientation.TopAbs_REVERSED) [n2, n3] = [n3, n2];
+          const getNode = (n) => {
+            const p = tri.get().Node(n);
+            const pt = p.Transformed(loc.IsIdentity() ? new oc.gp_Trsf_1() : loc.IsIdentity());
+            return { x: p.X(), y: p.Y(), z: p.Z() };
+          };
+          const v0 = getNode(n1), v1 = getNode(n2), v2 = getNode(n3);
+          const ab = Vec3.sub([v1.x,v1.y,v1.z],[v0.x,v0.y,v0.z]);
+          const ac = Vec3.sub([v2.x,v2.y,v2.z],[v0.x,v0.y,v0.z]);
+          const n = Vec3.normalize(Vec3.cross(ab, ac));
+          triangles.push({ normal:{x:n[0],y:n[1],z:n[2]}, verts:[v0,v1,v2] });
+        }
+        faceCount++;
+      }
+      xpFace.Next();
+    }
+
+    oc.FS.unlink('/model.step');
+
+    if (!triangles.length) throw new Error('No geometry found in STEP file');
+
+    document.getElementById('i3d-fname').textContent  = file.name;
+    document.getElementById('i3d-fmt').textContent    = 'STEP (opencascade.js)';
+    document.getElementById('i3d-tris').textContent   = triangles.length.toLocaleString();
+    document.getElementById('i3d-verts').textContent  = (triangles.length*3).toLocaleString();
+    const bbox = stlBBox(triangles);
+    document.getElementById('i3d-bbox').textContent   = `${bbox.w}×${bbox.h}×${bbox.d} mm`;
+    document.getElementById('import3d-file-info').classList.add('visible');
+    statusEl.textContent = `✓ STEP parsed · ${faceCount} faces · ${triangles.length.toLocaleString()} triangles`;
+    statusEl.style.color = '#5ddb8c';
+
+    _import3dParsed = triangles;
+    const btn = document.getElementById('i3d-commit-btn');
+    btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+
+  } catch(err) {
+    statusEl.textContent = '✗ STEP error: ' + err.message;
+    statusEl.style.color = 'var(--red)';
+    console.error('STEP import error:', err);
+  }
+}
+
+// Override process3DFile to handle STEP with OCCT
+function process3DFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const statusEl = document.getElementById('i3d-status');
+  statusEl.style.color = 'var(--accent)';
+
+  if (ext === 'step' || ext === 'stp') {
+    importSTEP(file);
+    return;
+  }
+
+  if (ext === 'stl') {
+    statusEl.textContent = 'Parsing STL…';
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target.result;
+        let triangles;
+        if (text.trimStart().startsWith('solid')) {
+          triangles = parseSTLAscii(text);
+        }
+        if (!triangles || !triangles.length) {
+          const br = new FileReader();
+          br.onload = (be) => { finishSTLParse(file.name, parseSTLBinary(be.target.result), statusEl); };
+          br.readAsArrayBuffer(file);
+          return;
+        }
+        finishSTLParse(file.name, triangles, statusEl);
+      } catch(err) {
+        statusEl.textContent = 'Parse error: ' + err.message;
+        statusEl.style.color = 'var(--red)';
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+
+// ── IMPROVED MANIFOLD BOOLEAN (with fallback to BSP) ─────────
+const MANIFOLD_CDN = 'https://cdn.jsdelivr.net/npm/manifold-3d@2.5.1/manifold.js';
+let manifoldReady = false;
+let manifoldModule = null;
+
+async function loadManifold() {
+  if (manifoldReady) return manifoldModule;
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = MANIFOLD_CDN;
+    script.onload = async () => {
+      try {
+        manifoldModule = await Module(); // manifold-3d exposes Module()
+        manifoldReady = true;
+        resolve(manifoldModule);
+      } catch(err) { reject(err); }
+    };
+    script.onerror = () => reject(new Error('manifold-3d CDN load failed'));
+    document.head.appendChild(script);
+  });
+}
+
+// Convert HalfEdgeMesh → manifold mesh arrays
+function meshToManifoldArrays(mesh) {
+  const tris = mesh.toTriangles();
+  const verts = [];
+  const triIdx = [];
+  const vMap = new Map();
+  let vidx = 0;
+  for (const tri of tris) {
+    for (const v of tri.verts) {
+      const key = `${v.x.toFixed(5)},${v.y.toFixed(5)},${v.z.toFixed(5)}`;
+      if (!vMap.has(key)) { vMap.set(key, vidx++); verts.push(v.x, v.y, v.z); }
+      triIdx.push(vMap.get(key));
+    }
+  }
+  return { vertProperties: new Float32Array(verts), triVerts: new Uint32Array(triIdx) };
+}
+
+// Convert manifold result back to HalfEdgeMesh
+function manifoldToMesh(mf, oc) {
+  const mesh = new HalfEdgeMesh();
+  const result = mf.getMesh();
+  const verts = result.vertProperties;
+  const tris  = result.triVerts;
+  for (let i = 0; i < tris.length; i += 3) {
+    const v0 = { x:verts[tris[i]*3],   y:verts[tris[i]*3+1],   z:verts[tris[i]*3+2]   };
+    const v1 = { x:verts[tris[i+1]*3], y:verts[tris[i+1]*3+1], z:verts[tris[i+1]*3+2] };
+    const v2 = { x:verts[tris[i+2]*3], y:verts[tris[i+2]*3+1], z:verts[tris[i+2]*3+2] };
+    const ids = [v0,v1,v2].map(v => mesh.addVertex(v.x,v.y,v.z));
+    const n = computeNormalObj(v0,v1,v2);
+    mesh.faces.push({ verts:ids, normal:n, id:mesh.nextFId++, sourceOp:'MANIFOLD' });
+  }
+  return mesh;
+}
+
+async function runBooleanManifold(operation) {
+  const solids = SolidStore.solids.filter(s => s.visible);
+  if (solids.length < 2) { showToast(`Need 2 visible solids — have ${solids.length}`); return; }
+  const A = solids[0], B = solids[1];
+  showToast(`Boolean ${operation}… loading manifold`);
+  try {
+    const oc = await loadManifold();
+    const { Manifold } = oc;
+    const arrA = meshToManifoldArrays(A.mesh);
+    const arrB = meshToManifoldArrays(B.mesh);
+    const mA = new Manifold(arrA);
+    const mB = new Manifold(arrB);
+    let result;
+    if (operation === 'union')     result = Manifold.union(mA, mB);
+    if (operation === 'subtract')  result = Manifold.difference(mA, mB);
+    if (operation === 'intersect') result = Manifold.intersection(mA, mB);
+    const resultMesh = manifoldToMesh(result, oc);
+    SolidStore.remove(A.id); SolidStore.remove(B.id);
+    const solid = SolidStore.add(`${operation}(A,B)`, resultMesh);
+    OpHistory.push('BOOLEAN', { operation, aId:A.id, bId:B.id }, solid.id);
+    rebuildScene();
+    showToast(`Boolean ${operation} complete · manifold-3d`);
+  } catch(err) {
+    console.warn('manifold-3d failed, using BSP fallback:', err);
+    // Fall back to existing BooleanOps
+    runBoolean(operation);
+  }
+}
+
+// ── .KBE v2 NATIVE FORMAT ────────────────────────────────────
+// Extended schema with full B-Rep + metadata
+GeoMemory.serialize = function() {
+  return JSON.stringify({
+    format:      'KUBE',
+    version:     '2.0',
+    created:     new Date().toISOString(),
+    units:       'mm',
+    displayUnits: unitMode,
+    workplane:   activePlane,
+    viewMode:    viewMode,
+    camera: {
+      orientation: Arcball.orientation,
+      target:      Arcball.target,
+      radius:      Arcball.radius,
+      projection:  Arcball.projection,
+    },
+    sketch: {
+      nextId:  this.nextId,
+      objects: this.objects,
+    },
+    solids:  SolidStore.serialize(),
+    history: OpHistory.serialize(),
+    meta: {
+      generator: 'KUBE v2.0',
+      triangleCount: SolidStore.allTriangles().length,
+    },
+  }, null, 2);
+};
+
+GeoMemory.deserialize = function(s) {
+  try {
+    const d = JSON.parse(s);
+    if (d.format !== 'KUBE') throw new Error('Not a .kbe file');
+    // Support v1 and v2 schemas
+    if (d.sketch) {
+      this.objects = d.sketch.objects || [];
+      this.nextId  = d.sketch.nextId  || 1;
+    } else {
+      this.objects = d.objects || [];
+      this.nextId  = d.nextId  || 1;
+    }
+    if (d.solids)  SolidStore.deserialize(d.solids);
+    if (d.history) OpHistory.deserialize(d.history);
+    if (d.camera) {
+      Arcball.orientation = d.camera.orientation || Quat.identity();
+      Arcball.target      = d.camera.target      || [0,0,0];
+      Arcball.radius      = d.camera.radius      || 400;
+      Arcball.projection  = d.camera.projection  || 'perspective';
+    }
+    if (d.displayUnits && d.displayUnits !== unitMode) toggleUnits();
+    if (d.workplane) setWorkplane(d.workplane);
+    if (d.viewMode && d.viewMode !== viewMode) toggleViewMode();
+    rebuildScene();
+    updateHistoryPanel();
+    return true;
+  } catch(err) {
+    console.error('KBE load error:', err);
+    return false;
+  }
+};
+
+// ── IMPROVED DRAW AXIS GIZMO ─────────────────────────────────
+
+// ── VIEW CUBE ──────────────────────────────────────────────────────────────
+// Interactive orientation cube — click faces/corners to snap view.
+// Reflects Arcball.orientation in real time.
+
+
+
+
+function drawAxisGizmo() { /* superseded by SVG navcube */ }
+
+// ─── Dynamic NavCube — rebuilds SVG from current camera orientation ───
+function updateNavCube() {
+  const svg = document.getElementById('navcube-svg');
+  if (!svg) return;
+  if (typeof Arcball === 'undefined') return;
+
+  const q  = Arcball.orientation || [0,0,0,1];
+  const qi = [-q[0], -q[1], -q[2], q[3]];  // conjugate (inverse for unit Q)
+
+  function rotateVec(qq, v) {
+    const [qx,qy,qz,qw] = qq, [vx,vy,vz] = v;
+    const tx = 2*(qy*vz - qz*vy);
+    const ty = 2*(qz*vx - qx*vz);
+    const tz = 2*(qx*vy - qy*vx);
+    return [
+      vx + qw*tx + qy*tz - qz*ty,
+      vy + qw*ty + qz*tx - qx*tz,
+      vz + qw*tz + qx*ty - qy*tx,
+    ];
+  }
+
+  // SVG coords: center (60,60), scale 30 — keeps cube within 120x120 viewBox
+  const cx = 60, cy = 60, s = 30;
+  const project = (v) => {
+    const rv = rotateVec(qi, v);
+    return { x: cx + rv[0]*s, y: cy - rv[1]*s, z: rv[2] };
+  };
+
+  // 8 corners of [-1,1]^3 cube
+  const C = [
+    [-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],
+    [-1,-1, 1],[1,-1, 1],[1,1, 1],[-1,1, 1],
+  ];
+  const P = C.map(project);
+
+  // 6 faces: corner indices (CCW from outside), outward normal, view preset, colors
+  const FACES = [
+    { idx:[4,5,6,7], n:[0,0,1],  lab:'FRT', vw:'front', fill:'rgba(77,184,255,0.28)', stk:'#4db8ff', tc:'#4db8ff' },
+    { idx:[1,0,3,2], n:[0,0,-1], lab:'BCK', vw:'back',  fill:'rgba(77,184,255,0.18)', stk:'#4db8ff', tc:'#4db8ff' },
+    { idx:[5,1,2,6], n:[1,0,0],  lab:'RGT', vw:'right', fill:'rgba(255,85,102,0.28)', stk:'#ff5566', tc:'#ff5566' },
+    { idx:[0,4,7,3], n:[-1,0,0], lab:'LFT', vw:'left',  fill:'rgba(255,85,102,0.18)', stk:'#ff5566', tc:'#ff5566' },
+    { idx:[3,7,6,2], n:[0,1,0],  lab:'TOP', vw:'top',   fill:'rgba(0,232,122,0.32)',  stk:'#00e87a', tc:'#00e87a' },
+    { idx:[0,1,5,4], n:[0,-1,0], lab:'BTM', vw:'bot',   fill:'rgba(0,232,122,0.16)',  stk:'#00e87a', tc:'#4a9a6a' },
+  ];
+
+  // Visibility — face normal in camera space; visible if +Z component (toward camera)
+  const data = FACES.map(f => {
+    const nc  = rotateVec(qi, f.n);
+    const pts = f.idx.map(i => P[i]);
+    const avgZ = pts.reduce((a,p) => a + p.z, 0) / 4;
+    return { ...f, pts, avgZ, visible: nc[2] > 0.05 };
+  }).filter(f => f.visible);
+
+  // Sort back-to-front for painter's algorithm
+  data.sort((a,b) => a.avgZ - b.avgZ);
+
+  // Build SVG content
+  let html = '';
+  for (const f of data) {
+    const d = 'M' + f.pts.map(p => p.x.toFixed(2) + ' ' + p.y.toFixed(2)).join(' L') + ' Z';
+    html += '<path class="nc-face" d="' + d + '" fill="' + f.fill + '" stroke="' + f.stk +
+            '" stroke-width="1" stroke-linejoin="round" onclick="setView3D(\'' + f.vw + '\')"><title>' +
+            f.lab + ' view</title></path>';
+    const lx = f.pts.reduce((a,p) => a + p.x, 0) / 4;
+    const ly = f.pts.reduce((a,p) => a + p.y, 0) / 4 + 3;
+    html += '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) +
+            '" fill="' + f.tc + '" text-anchor="middle" pointer-events="none">' +
+            f.lab + '</text>';
+  }
+
+  // Corner click areas — only visible corners get clickable circles
+  const CORNER_PRESETS = ['bbl','bbr','tbr','tbl','bfl','bfr','tfr','tfl'];
+  for (let i = 0; i < 8; i++) {
+    const p = P[i];
+    if (p.z <= 0.05) continue;
+    html += '<circle class="nc-corner-dot" cx="' + p.x.toFixed(2) +
+            '" cy="' + p.y.toFixed(2) + '" r="6" onclick="setView3D(\'iso-' +
+            CORNER_PRESETS[i] + '\')"><title>' + CORNER_PRESETS[i].toUpperCase() +
+            ' isometric</title></circle>';
+  }
+
+  svg.innerHTML = html;
+}
+
+
+// Full quaternion-based projection — only runs when everything's ready
+
+
+// Fallback: simple labeled cube drawn with 2D primitives — always works
+
+
+
+
+// ── PHASE 4 INIT ─────────────────────────────────────────────
+async function runBooleanUI(op) {
+  await runBooleanManifold(op);
+}
+
+function initPhase4() {
+  console.log('KUBE v2.0 Phase 4: arcball + STEP + manifold booleans + per-solid GPU');
+}
+
+
+
+
+// ── COMMIT 3D IMPORT v2 ──────────────────────────────────────
+window.commitImport3D = function() {
+  if (!_import3dParsed || !_import3dParsed.length) return;
+  const triangles = _import3dParsed;
+  // Ensure normals
+  for (const tri of triangles) {
+    if (!tri.normal || (!tri.normal.x && !tri.normal.y && !tri.normal.z)) {
+      tri.normal = computeNormalObj(tri.verts[0], tri.verts[1], tri.verts[2]);
+    }
+  }
+  const mesh = MeshStore.add('Import', triangles);
+  const bbox = mesh.bbox;
+  Arcball.frameScene(bbox);
+  uploadMeshToGPU(triangles);
+  uploadGridToGPU();
+  if (canvas3d) {
+    canvas3d.style.display = 'block';
+    canvas3d.style.pointerEvents = 'none';
+    document.getElementById('main-canvas').style.opacity = '0.08';
+  }
+  // Mesh info panel
+  document.getElementById('mesh-info').classList.add('visible');
+  document.getElementById('mi-tris').textContent  = triangles.length.toLocaleString();
+  document.getElementById('mi-verts').textContent = (triangles.length*3).toLocaleString();
+  document.getElementById('mi-w').textContent = parseFloat(bbox.w).toFixed(2) + ' mm';
+  document.getElementById('mi-h').textContent = parseFloat(bbox.h).toFixed(2) + ' mm';
+  document.getElementById('mi-d').textContent = parseFloat(bbox.d).toFixed(2) + ' mm';
+  closeImport3D();
+  render3D();
+  showToast(`Loaded ${triangles.length.toLocaleString()} triangles · ${rendererBackend.toUpperCase()}`);
+  _import3dParsed = null;
+};
+
+// ── RENDER OVERRIDE: 2D + 3D ────────────────────────────────
+(function() {
+  const _base = render;
+  window.render = function() { _base(); if (is3DMode()) render3D(); };
+})();
+
 // ── INIT ────────────────────────────────────────────────
 requestAnimationFrame(()=>{
   requestAnimationFrame(()=>{
-    resizeCanvas();
+    
+
+function arcToPolygonPts(cx, cy, r, startA, endA, ccw, segments=64) {
+    const pts = [];
+    let a0 = startA, a1 = endA;
+    if (ccw) {
+      // go from a0 → a1 counter-clockwise (increasing angle)
+      if (a1 < a0) a1 += 2*Math.PI;
+    } else {
+      // go from a0 → a1 clockwise (decreasing angle)
+      if (a1 > a0) a1 -= 2*Math.PI;
+    }
+    const span = a1 - a0;
+    const steps = Math.max(4, Math.ceil(Math.abs(span) / (2*Math.PI) * segments));
+    for (let i = 0; i <= steps; i++) {
+      const a = a0 + (span * i / steps);
+      pts.push([f(cx + r * Math.cos(a)), f(cy + r * Math.sin(a))]);
+    }
+    return pts;
+  }
+
+function commitChamfer(line1Id, line2Id) {
+  const o1 = GeoMemory.objects.find(o=>o.id===line1Id);
+  const o2 = GeoMemory.objects.find(o=>o.id===line2Id);
+  if (!o1||!o2||o1.type!=='LINE'||o2.type!=='LINE') { showToast('Select two lines for chamfer'); return; }
+
+  // Find intersection
+  const ip = lineIntersectPt(
+    {x:o1.x1,y:o1.y1},{x:o1.x2,y:o1.y2},
+    {x:o2.x1,y:o2.y1},{x:o2.x2,y:o2.y2}
+  );
+  if (!ip) { showToast('Lines do not intersect'); return; }
+
+  const d = chamferDist;
+  // Find points at distance d from intersection along each line
+  function ptAtDist(lineObj, fromPt, dist) {
+    const dx1 = lineObj.x1 - fromPt.x, dy1 = lineObj.y1 - fromPt.y;
+    const dx2 = lineObj.x2 - fromPt.x, dy2 = lineObj.y2 - fromPt.y;
+    const len1 = Math.sqrt(dx1*dx1+dy1*dy1), len2 = Math.sqrt(dx2*dx2+dy2*dy2);
+    if (len1 < 1e-6 && len2 < 1e-6) return null;
+    if (len1 > len2) {
+      const t = dist/len1; return {x:fromPt.x+dx1*t, y:fromPt.y+dy1*t};
+    } else {
+      const t = dist/len2; return {x:fromPt.x+dx2*t, y:fromPt.y+dy2*t};
+    }
+  }
+  const cp1 = ptAtDist(o1, ip, d);
+  const cp2 = ptAtDist(o2, ip, d);
+  if (!cp1||!cp2) return;
+
+  // Trim line1 to cp1 and line2 to cp2, add chamfer line
+  // Determine which end to trim
+  function trimLine(obj, trimPt, intPt) {
+    const d1 = Math.hypot(obj.x1-intPt.x, obj.y1-intPt.y);
+    const d2 = Math.hypot(obj.x2-intPt.x, obj.y2-intPt.y);
+    if (d1 < d2) { obj.x1=trimPt.x; obj.y1=trimPt.y; }
+    else          { obj.x2=trimPt.x; obj.y2=trimPt.y; }
+  }
+  trimLine(o1, cp1, ip);
+  trimLine(o2, cp2, ip);
+  GeoMemory.addLine(cp1.x, cp1.y, cp2.x, cp2.y);
+  render();
+  showToast(`Chamfer ${fmtU(d)} applied`);
+}
+
+function drawChamferPreview() {
+  if (activeTool !== 'chamfer' || !chamferState.line1) return;
+  // Highlight selected lines
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,170,0,0.6)';
+  ctx.lineWidth = 2;
+  const o = GeoMemory.objects.find(o=>o.id===chamferState.line1);
+  if (o) {
+    const a = worldToScreen(o.x1,o.y1), b = worldToScreen(o.x2,o.y2);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function mirrorSelected() {
+  const ids = [...selectedIds];
+  if (!ids.length) { showToast('Select objects first (S)'); return; }
+
+  // Compute bounding box of selected objects for h/v axis center
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  for (const o of GeoMemory.objects.filter(o => selectedIds.has(o.id))) {
+    if (o.type === 'LINE') {
+      minX=Math.min(minX,o.x1,o.x2); maxX=Math.max(maxX,o.x1,o.x2);
+      minY=Math.min(minY,o.y1,o.y2); maxY=Math.max(maxY,o.y1,o.y2);
+    } else if (o.type === 'CIRCLE') {
+      minX=Math.min(minX,o.cx-o.r); maxX=Math.max(maxX,o.cx+o.r);
+      minY=Math.min(minY,o.cy-o.r); maxY=Math.max(maxY,o.cy+o.r);
+    } else if (o.type === 'ARC') {
+      const bb = arcBBox(o.cx,o.cy,o.r,o.startA,o.endA,o.ccw);
+      minX=Math.min(minX,bb.minX); maxX=Math.max(maxX,bb.maxX);
+      minY=Math.min(minY,bb.minY); maxY=Math.max(maxY,bb.maxY);
+    } else if (o.type === 'POLYLINE') {
+      for (const p of o.pts) { minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x); minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y); }
+    }
+  }
+
+  const axisData = mirrorAxis === 'line' && mirrorLineState.p1 && mirrorLineState.p2
+    ? { p1: mirrorLineState.p1, p2: mirrorLineState.p2 }
+    : { cx: (minX+maxX)/2, cy: (minY+maxY)/2 };
+
+  if (mirrorAxis === 'line' && (!mirrorLineState.p1 || !mirrorLineState.p2)) {
+    showToast('Click two points on canvas to define mirror line'); return;
+  }
+
+  const mp = (x,y) => mirrorPoint(x, y, mirrorAxis, axisData);
+  let added = 0;
+  for (const o of GeoMemory.objects.filter(o => selectedIds.has(o.id))) {
+    if (o.type === 'LINE') {
+      const a = mp(o.x1,o.y1), b = mp(o.x2,o.y2);
+      GeoMemory.addLine(a.x,a.y,b.x,b.y,o.layer); added++;
+    } else if (o.type === 'POLYLINE') {
+      const newPts = o.pts.map(p => mp(p.x,p.y));
+      GeoMemory.addPolyline(newPts, o.closed, o.layer); added++;
+    } else if (o.type === 'CIRCLE') {
+      const c = mp(o.cx,o.cy);
+      GeoMemory.addCircle(c.x,c.y,o.r,o.layer); added++;
+    } else if (o.type === 'ARC') {
+      const c = mp(o.cx,o.cy);
+      // Mirror arc: flip angles depending on axis
+      let sa = o.startA, ea = o.endA;
+      if (mirrorAxis === 'h') { sa = -o.startA; ea = -o.endA; }
+      else if (mirrorAxis === 'v') { sa = Math.PI - o.startA; ea = Math.PI - o.endA; }
+      else { /* line mirror — approximate by swapping and negating */ sa = Math.PI - o.startA; ea = Math.PI - o.endA; }
+      GeoMemory.addArc(c.x,c.y,o.r,sa,ea,!o.ccw,o.layer); added++;
+    }
+  }
+  showToast(`Mirrored ${added} object${added!==1?'s':''}`);
+  render();
+}
+
+function setMirrorAxis(axis) {
+  mirrorAxis = axis;
+  ['h','v','line'].forEach(a => {
+    const btn = document.getElementById('mirror-btn-'+a);
+    if (!btn) return;
+    btn.style.background = a === axis ? 'var(--accent-glow)' : 'var(--panel)';
+    btn.style.borderColor = a === axis ? 'var(--accent)' : 'var(--border)';
+    btn.style.color = a === axis ? 'var(--accent)' : 'var(--t2)';
+  });
+  mirrorLineState = { active: false, p1: null };
+  render();
+}
+
+function drawMirrorPreview() {
+  if (activeTool !== 'mirror') return;
+  ctx.save();
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = 'rgba(0,212,255,0.5)';
+  ctx.lineWidth = 1;
+  const W = canvas.width, H = canvas.height;
+  if (mirrorAxis === 'h') {
+    // horizontal axis through selection center or canvas center
+    const cy = worldToScreen(0, 0).y;
+    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+  } else if (mirrorAxis === 'v') {
+    const cx = worldToScreen(0, 0).x;
+    ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+  } else if (mirrorAxis === 'line') {
+    if (mirrorLineState.p1) {
+      const sp1 = worldToScreen(mirrorLineState.p1.x, mirrorLineState.p1.y);
+      const ep = mirrorLineState.p2 ? worldToScreen(mirrorLineState.p2.x, mirrorLineState.p2.y)
+                                     : worldToScreen(mouseWorld.x, mouseWorld.y);
+      ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(ep.x, ep.y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#00d4ff';
+      ctx.beginPath(); ctx.arc(sp1.x, sp1.y, 4, 0, Math.PI*2); ctx.fill();
+      if (mirrorLineState.p2) {
+        ctx.beginPath(); ctx.arc(ep.x, ep.y, 4, 0, Math.PI*2); ctx.fill();
+      }
+    }
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawMeasurePreview() {
+  if (activeTool !== 'measure' || !measureState.active || !measureState.p1) return;
+  const sp1 = worldToScreen(measureState.p1.x, measureState.p1.y);
+  const sp2 = worldToScreen(mouseWorld.x, mouseWorld.y);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,170,0,0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#ffaa00';
+  ctx.beginPath(); ctx.arc(sp1.x, sp1.y, 4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sp2.x, sp2.y, 4, 0, Math.PI*2); ctx.fill();
+  // Live distance label
+  const dx = mouseWorld.x - measureState.p1.x, dy = mouseWorld.y - measureState.p1.y;
+  const dist = Math.hypot(dx, dy);
+  const angle = (Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1);
+  const mid = { x: (sp1.x+sp2.x)/2, y: (sp1.y+sp2.y)/2 };
+  ctx.font = '10px "Fira Code", monospace';
+  ctx.fillStyle = '#ffaa00';
+  ctx.fillText(`${fmtU(dist)}  ${angle}°`, mid.x + 6, mid.y - 6);
+  ctx.restore();
+  // Update sidebar readout live
+  if (dist > 0) updateMeasureDisplay(measureState.p1, mouseWorld);
+}
+
+function updateMeasureDisplay(p1, p2) {
+  const dx = p2.x - p1.x, dy = p2.y - p1.y;
+  const dist = Math.hypot(dx, dy);
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  document.getElementById('measure-dist').textContent = fmtU(dist);
+  document.getElementById('measure-angle').textContent = angle.toFixed(2) + '°';
+}
+
+function copySelected() {
+  const ids = [...selectedIds];
+  if (!ids.length) { showToast('Select objects first'); return; }
+  const copies = [];
+  for (const id of ids) {
+    const o = GeoMemory.objects.find(x=>x.id===id);
+    if (!o) continue;
+    if (o.type==='LINE') {
+      copies.push({type:'LINE',x1:o.x1+copyOffset.x,y1:o.y1+copyOffset.y,
+                                x2:o.x2+copyOffset.x,y2:o.y2+copyOffset.y});
+    } else if (o.type==='CIRCLE') {
+      copies.push({type:'CIRCLE',cx:o.cx+copyOffset.x,cy:o.cy+copyOffset.y,r:o.r});
+    } else if (o.type==='ARC') {
+      copies.push({type:'ARC',cx:o.cx+copyOffset.x,cy:o.cy+copyOffset.y,
+                   r:o.r,startAngle:o.startAngle,endAngle:o.endAngle,ccw:o.ccw});
+    } else if (o.type==='POLYLINE') {
+      copies.push({type:'POLYLINE',pts:o.pts.map(p=>({x:p.x+copyOffset.x,y:p.y+copyOffset.y})),
+                   closed:o.closed});
+    }
+  }
+  for (const c of copies) {
+    if (c.type==='LINE') GeoMemory.addLine(c.x1,c.y1,c.x2,c.y2);
+    else if (c.type==='CIRCLE') GeoMemory.addCircle(c.cx,c.cy,c.r);
+    else if (c.type==='ARC') GeoMemory.addArc(c.cx,c.cy,c.r,c.startAngle,c.endAngle,c.ccw);
+    else if (c.type==='POLYLINE') {
+      const id = GeoMemory.nextId++;
+      GeoMemory.objects.push({...c, id});
+    }
+  }
+  render();
+  showToast(`Copied ${copies.length} object${copies.length>1?'s':''}`);
+}
+
+resizeCanvas();
     initCamera();
     setTool('select');
     canvas.focus();
     document.getElementById('cc-year').textContent = new Date().getFullYear();
     initSplash();
     // Phase 2: boot WebGPU/WebGL2 renderer
+    // Force initial gizmo draw even if renderer init lags
     initPhase2().then(()=>{
+          initPhase3();
+      initPhase4();
       uploadGridToGPU();
-      initPhase3();
     });
     setTimeout(()=>{
       GeoMemory.addLine(-15,0,15,0);
@@ -5885,6 +6985,132 @@ requestAnimationFrame(()=>{
     },100);
   });
 });
+
+
+function updateSolidList() {
+  const el = document.getElementById('solid-list');
+  if (!el) return;
+  const all = [
+    ...SolidStore.solids.map(s=>({id:s.id,name:s.name,color:s.color,src:'solid',
+      onVis:`SolidStore.getById(${s.id}).visible=!SolidStore.getById(${s.id}).visible;rebuildScene();updateSolidList()`,
+      onSel:`selectSolid(${s.id})`,
+      onDel:`SolidStore.remove(${s.id});rebuildScene();updateSolidList()`})),
+    ...MeshStore.meshes.map(m=>({id:m.id,name:m.name,color:m.color,src:'mesh',
+      onVis:`MeshStore.meshes.find(m=>m.id===${m.id}).visible=!MeshStore.meshes.find(m=>m.id===${m.id}).visible;rebuildScene();updateSolidList()`,
+      onSel:``,
+      onDel:`MeshStore.remove(${m.id});rebuildScene();updateSolidList()`})),
+  ];
+  if (!all.length) {
+    el.innerHTML='<div style="font-family:var(--fm);font-size:9px;color:var(--t3);padding:6px 8px;">No solids</div>';
+    return;
+  }
+  el.innerHTML = all.map(s=>`
+    <div style="display:flex;align-items:center;gap:5px;padding:4px 8px;
+      border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;"
+      onclick="${s.onSel}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${s.color};
+        flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();${s.onVis}" title="Toggle visibility"></div>
+      <span style="flex:1;font-family:var(--fm);font-size:9px;color:var(--t2);
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.name}">${s.name}</span>
+      <span style="font-family:var(--fm);font-size:8px;color:var(--t3);">${s.src}</span>
+      <button onclick="event.stopPropagation();${s.onDel};showToast('Deleted')"
+        style="background:none;border:none;color:var(--red);cursor:pointer;font-size:10px;padding:0 2px;opacity:0.7;">✕</button>
+    </div>`).join('');
+}
+
+
+// ── SCAD EXPORT ───────────────────────────────────────────────────────────
+function buildSCAD() {
+  const allSolids = [
+    ...SolidStore.solids.filter(s=>s.visible).map(s=>({name:s.name,tris:s.mesh.toTriangles()})),
+    ...MeshStore.meshes.filter(m=>m.visible).map(m=>({name:m.name,tris:m.triangles})),
+  ];
+  if (!allSolids.length) return null;
+  const NL = '\n';
+  let out = `// KUBE Export — OpenSCAD${NL}// KERFsuite · Units: mm${NL}${NL}`;
+
+  for (const solid of allSolids) {
+    const {tris} = solid;
+    if (!tris.length) continue;
+    const verts=[]; const vm=new Map();
+    const vid=(x,y,z)=>{ const k=`${x.toFixed(4)},${y.toFixed(4)},${z.toFixed(4)}`; if(vm.has(k))return vm.get(k); const id=verts.length; vm.set(k,id); verts.push([x,y,z]); return id; };
+    const faces=tris.map(t=>t.verts.map(v=>vid(v.x,v.y,v.z)));
+    const mname=solid.name.replace(/[^a-zA-Z0-9_]/g,'_')||'solid';
+    out+=`module ${mname}() {${NL}  polyhedron(${NL}    points=[${NL}`;
+    out+=verts.map(v=>`      [${v[0].toFixed(4)},${v[1].toFixed(4)},${v[2].toFixed(4)}]`).join(`,${NL}`);
+    out+=`${NL}    ],${NL}    faces=[${NL}`;
+    out+=faces.map(f=>`      [${f.join(',')}]`).join(`,${NL}`);
+    out+=`${NL}    ],convexity=4${NL}  );${NL}}${NL}${NL}`;
+  }
+  if (allSolids.length===1) {
+    out+=`${allSolids[0].name.replace(/[^a-zA-Z0-9_]/g,'_')||'solid'}();${NL}`;
+  } else {
+    out+=`union() {${NL}${allSolids.map(s=>`  ${s.name.replace(/[^a-zA-Z0-9_]/g,'_')||'solid'}();`).join(NL)}${NL}}${NL}`;
+  }
+  return out;
+}
+
+function exportSCAD() {
+  const scad = buildSCAD();
+  if (!scad) { showToast('No solids — extrude a sketch first'); return; }
+  downloadText(scad, 'model.scad', 'text/plain');
+  showToast('Exported model.scad · OpenSCAD polyhedron');
+}
+
+// ── SCAD IMPORT ────────────────────────────────────────────────────────────
+// Parses polyhedron() calls from SCAD files.
+// Complex SCAD (difference, for loops, variables) needs openscad-wasm (Phase 5).
+function importSCAD(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const polyRx = /polyhedron\s*\(\s*points\s*=\s*\[([^\]]+(?:\[[^\]]*\][^\]]*)*)\]\s*,\s*faces\s*=\s*\[([^\]]+(?:\[[^\]]*\][^\]]*)*)\]/gs;
+    const numRx  = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g;
+    let m; let imported=0;
+    while ((m=polyRx.exec(text))!==null) {
+      const ptNums=[]; numRx.lastIndex=0; let n;
+      const ptTxt=m[1];
+      while((n=numRx.exec(ptTxt))!==null) ptNums.push(parseFloat(n[0]));
+      const points=[];
+      for(let i=0;i+2<ptNums.length;i+=3) points.push({x:ptNums[i],y:ptNums[i+1],z:ptNums[i+2]});
+
+      const faceTxt=m[2];
+      const faceRows=[...faceTxt.matchAll(/\[([^\]]+)\]/g)].map(r=>r[1].split(',').map(Number).filter(x=>!isNaN(x)));
+
+      if (!points.length||!faceRows.length) continue;
+      const mesh=new HalfEdgeMesh();
+      const ids=points.map(p=>mesh.addVertex(p.x,p.y,p.z));
+      for(const face of faceRows) if(face.length>=3) mesh.addFace(face.map(i=>ids[i]),'SCAD');
+      const name=file.name.replace(/\.scad$/i,'')+(imported?'_'+imported:'');
+      SolidStore.add(name,mesh);
+      imported++;
+    }
+    if (imported) { rebuildScene(); updateSolidList(); showToast(`Imported ${imported} solid${imported>1?'s':''} from ${file.name}`); }
+    else showToast('No polyhedron() found — complex SCAD needs openscad-wasm (Phase 5)');
+  };
+  reader.readAsText(file);
+}
 </script>
+
+<!-- ── PRIMITIVE INSERT PANEL ── -->
+<div id="primitive-panel" style="display:none;position:fixed;z-index:600;
+  background:var(--panel,#0d1117);border:1px solid var(--border-hi,#2a3d55);
+  border-radius:8px;padding:12px 14px;box-shadow:0 8px 32px rgba(0,0,0,0.75);
+  min-width:220px;font-family:var(--fm,'Fira Code',monospace);">
+  <div id="prim-title" style="font-size:8px;color:var(--t2,#6a8099);
+    letter-spacing:0.16em;text-transform:uppercase;margin-bottom:10px;"></div>
+  <div id="prim-fields"></div>
+  <div style="display:flex;gap:6px;margin-top:10px;">
+    <button onclick="commitPrimitive()"
+      style="flex:1;background:rgba(0,232,122,0.12);border:1px solid rgba(0,232,122,0.3);
+      border-radius:4px;color:var(--accent,#00e87a);font-family:var(--fm);font-size:9px;
+      padding:6px;cursor:pointer;letter-spacing:0.08em;">INSERT ↵</button>
+    <button onclick="document.getElementById('primitive-panel').style.display='none'"
+      style="background:rgba(255,255,255,0.04);border:1px solid var(--border);
+      border-radius:4px;color:var(--t2);font-family:var(--fm);font-size:9px;
+      padding:6px 10px;cursor:pointer;">✕</button>
+  </div>
+</div>
+
 </body>
 </html>
