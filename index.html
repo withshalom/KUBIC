@@ -1,4 +1,24 @@
 <!DOCTYPE html>
+<!--
+  KERFsuite™ — Kernel-Aided Design Suite
+  Copyright (C) 2024-2025 KERFsuite / withshalom
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published
+  by the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-License-Identifier: AGPL-3.0-or-later
+  Commercial use requires a separate license — see KERFsuite for details: https://withshalom.github.io
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -663,12 +683,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
 
 /* 3D axis gizmo */
 
-
 /* View preset buttons */
-
-
-
-
 
 /* 3D selection info */
 #sel3d-info {
@@ -723,7 +738,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
 #coord-overlay-3d { display: none; }
 #coord-overlay-3d.visible { display: flex; }
 
-
 /* ── OP HISTORY PANEL ── */
 .hist-empty { font-size:9px; color:var(--t3); padding:4px 0; letter-spacing:0.06em; }
 .hist-item {
@@ -736,7 +750,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
 .hist-detail { color:var(--t3); }
 #op-history-list { max-height:120px; overflow-y:auto; }
 
-
 .tool-grid-bottom {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -744,12 +757,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
   padding: 6px;
   background: var(--border);
   border-top: 1px solid var(--border);
-}
-.tool-grid-bottom .tool-btn {
-  grid-column: 1 / -1;
-}
-.tool-grid-bottom .tool-btn {
-  width: 100%;
 }
 
 #btn-pushpull { color: var(--accent); border-top: 1px solid rgba(0,232,122,0.2); }
@@ -1223,7 +1230,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
     <div class="sb-item"><span>VIEW</span><span class="sb-val ok" id="sb-viewmode">SOLID</span></div><div class="sb-item"><span>PLANE</span><span class="sb-val act" id="sb-plane">XY</span></div><div class="sb-item"><span class="sb-val ok">KUBE v1.0</span></div>
     <div class="sb-cc">
       <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0;opacity:0.7"><circle cx="12" cy="12" r="9"/><path d="M10 9.5A2.5 2.5 0 0 0 7.5 12a2.5 2.5 0 0 0 2.5 2.5"/><path d="M16 9.5A2.5 2.5 0 0 0 13.5 12a2.5 2.5 0 0 0 2.5 2.5"/></svg>
-      <span>© <span id="cc-year"></span> · Licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener" class="cc-link">CC BY-SA 4.0</a> · KUBE Kernel-Unified Build Environment</span>
+      <span>© <span id="cc-year"></span> · Licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener" class="cc-link">AGPL-3.0</a> · KUBE Kernel-Unified Build Environment</span>
     </div>
   </div>
 </div>
@@ -1356,7 +1363,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--void); c
       </div>
       <div class="splash-note">
         This preference is saved locally and won't appear again.<br>
-        CC BY-SA 4.0 · © <span id="splash-year"></span> · KUBE Kernel-Unified Build Environment
+        AGPL-3.0 · © <span id="splash-year"></span> · KUBE Kernel-Unified Build Environment
       </div>
     </div>
   </div>
