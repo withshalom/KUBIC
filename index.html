@@ -143,11 +143,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);
     </div>
     <div class="sb-panel">
       <div class="sb-panel-label">View</div>
-      <div class="view-grid">
+      <div class="view-grid" style="grid-template-columns:1fr 1fr 1fr;">
         <button class="vb" onclick="setView('iso')">ISO</button>
         <button class="vb" onclick="setView('top')">TOP</button>
         <button class="vb" onclick="setView('front')">FRONT</button>
         <button class="vb" onclick="setView('right')">RIGHT</button>
+        <button class="vb" onclick="setView('btm')">BTM</button>
+        <button class="vb" onclick="setView('left')">LEFT</button>
+        <button class="vb" onclick="setView('back')">BACK</button>
       </div>
       <div class="sb-row">
         <span style="font-size:10px;color:var(--t2);">Snap</span>
@@ -495,13 +498,14 @@ function drawNavCube(){
     return[NX+px*d, NY-py*d];
   }
 
+  // Labels match world-space axis: Z-up system, X=right, Y=north, Z=up.
   const faceList=[
-    {i:[0,1,2,3], label:'BACK',  col:'rgba(0,232,122,0.06)'},
-    {i:[4,5,6,7], label:'FRONT', col:'rgba(0,232,122,0.12)'},
-    {i:[0,4,7,3], label:'LEFT',  col:'rgba(0,232,122,0.06)'},
-    {i:[1,5,6,2], label:'RIGHT', col:'rgba(0,232,122,0.06)'},
-    {i:[0,1,5,4], label:'BTM',   col:'rgba(0,232,122,0.04)'},
-    {i:[3,2,6,7], label:'TOP',   col:'rgba(0,232,122,0.10)'},
+    {i:[0,1,2,3], label:'BTM',   col:'rgba(0,232,122,0.04)'},  // z=-1 face
+    {i:[4,5,6,7], label:'TOP',   col:'rgba(0,232,122,0.10)'},  // z=+1 face
+    {i:[0,4,7,3], label:'LEFT',  col:'rgba(0,232,122,0.06)'},  // x=-1 face
+    {i:[1,5,6,2], label:'RIGHT', col:'rgba(0,232,122,0.06)'},  // x=+1 face
+    {i:[0,1,5,4], label:'FRONT', col:'rgba(0,232,122,0.12)'},  // y=-1 face
+    {i:[3,2,6,7], label:'BACK',  col:'rgba(0,232,122,0.06)'},  // y=+1 face
   ];
 
   g3.save();
@@ -545,14 +549,84 @@ function drawNavCube(){
     g3.textAlign='center'; g3.textBaseline='middle';
     g3.fillText(f.label, f._cx, f._cy);
   });
+  // ── Face center nodes (glow on hover, help users find clickable faces) ──
+  // Face centers in cube/world space — same system as corners/edges
+  // Face center world positions — label = world direction of that face normal.
+  const FACE_CENTERS=[
+    {pt:[0,0,+1],label:'TOP'},   {pt:[0,0,-1],label:'BTM'},
+    {pt:[-1,0,0],label:'LEFT'},  {pt:[+1,0,0],label:'RIGHT'},
+    {pt:[0,-1,0],label:'FRONT'}, {pt:[0,+1,0],label:'BACK'},
+  ];
+  // Only project front-facing face centers (same filter as navFaceCache)
+  const frontLabels=new Set(navFaceCache.map(f=>f.label));
+  navFaceNodeCache=FACE_CENTERS
+    .filter(f=>frontLabels.has(f.label))
+    .map(f=>({pos:pv(f.pt), label:f.label}));
+  navFaceNodeCache.forEach(fc=>{
+    const activeHov=navHoverFace===fc.label;
+    const glowing=navGlowState&&navGlowState.type==='face'&&navGlowState.label===fc.label;
+    if(!activeHov&&!glowing) return;
+    g3.save();
+    g3.shadowColor='#00e87a'; g3.shadowBlur=activeHov?14:5;
+    g3.fillStyle=activeHov?'#00e87a':'rgba(0,232,122,0.52)';
+    g3.beginPath(); g3.arc(fc.pos[0],fc.pos[1],activeHov?5:2.5,0,Math.PI*2);
+    g3.fill(); g3.shadowBlur=0; g3.restore();
+  });
+
   g3.textAlign='left'; g3.textBaseline='alphabetic';
 
-  // Axis dots
-  const ax=pv([1.65,0,0]), ay=pv([0,1.65,0]), az=pv([0,0,1.65]);
-  [[ax,'rgba(255,80,80,0.90)','X'],[ay,'rgba(40,200,80,0.90)','Y'],[az,'rgba(80,140,255,0.90)','Z']].forEach(([p,c,lbl])=>{
-    g3.fillStyle=c; g3.beginPath(); g3.arc(p[0],p[1],3.5,0,Math.PI*2); g3.fill();
-    g3.fillStyle=c; g3.font='bold 7px Fira Code';
-    g3.fillText(lbl, p[0]+4, p[1]+3);
+  // Vertices that belong to at least one front-facing face.
+  // Corners and edges not in this set are occluded — remove from cache.
+  const frontVerts=new Set(sorted.filter(f=>f._front).flatMap(f=>f.i));
+
+  // ── Corners (invisible until touched, glow briefly on hover) ────
+  navCornerCache=verts
+    .map((v,i)=>({pos:pv(v), cam:CORNER_CAM[i], idx:i}))
+    .filter(c=>frontVerts.has(c.idx));
+  navCornerCache.forEach(c=>{
+    const activeHov = navHoverCorner===c.idx;
+    const glowing   = navGlowState&&navGlowState.type==='corner'&&navGlowState.idx===c.idx;
+    if(!activeHov&&!glowing) return; // invisible when untouched
+    g3.save();
+    g3.shadowColor='#00e87a'; g3.shadowBlur=activeHov?10:4;
+    g3.fillStyle=activeHov?'#00e87a':'rgba(0,232,122,0.55)';
+    g3.beginPath(); g3.arc(c.pos[0],c.pos[1], activeHov?3.5:2, 0,Math.PI*2); g3.fill();
+    g3.shadowBlur=0; g3.restore();
+    if(activeHov){
+      g3.fillStyle='#00e87a'; g3.font='bold 6.5px Fira Code';
+      g3.textAlign='left'; g3.textBaseline='middle';
+      g3.fillText(c.cam.label, c.pos[0]+(c.pos[0]<NX?-34:7), c.pos[1]);
+    }
+  });
+
+  // ── Edge midpoints (invisible until touched, glow briefly on hover) ──
+  // Edge visible if at least one endpoint is on a front-facing face.
+  navEdgeCache=EDGE_PAIRS.map((pair,i)=>{
+    const pa=pv(verts[pair[0]]), pb=pv(verts[pair[1]]);
+    return{pos:[(pa[0]+pb[0])/2,(pa[1]+pb[1])/2], cam:EDGE_CAM[i], idx:i, _p:pair};
+  }).filter(e=>frontVerts.has(e._p[0])||frontVerts.has(e._p[1]));
+  navEdgeCache.forEach(e=>{
+    const activeHov = navHoverEdge===e.idx;
+    const glowing   = navGlowState&&navGlowState.type==='edge'&&navGlowState.idx===e.idx;
+    if(!activeHov&&!glowing) return; // invisible when untouched
+    g3.save();
+    g3.shadowColor='#00e87a'; g3.shadowBlur=activeHov?8:3;
+    g3.fillStyle=activeHov?'#00e87a':'rgba(0,232,122,0.50)';
+    g3.beginPath(); g3.arc(e.pos[0],e.pos[1], activeHov?3:1.8, 0,Math.PI*2); g3.fill();
+    g3.shadowBlur=0; g3.restore();
+    if(activeHov){
+      g3.fillStyle='rgba(0,232,122,0.88)'; g3.font='6px Fira Code';
+      g3.textAlign='left'; g3.textBaseline='middle';
+      g3.fillText(e.cam.label, e.pos[0]+(e.pos[0]<NX?-28:5), e.pos[1]);
+    }
+  });
+  g3.textAlign='left'; g3.textBaseline='alphabetic';
+
+  // Axis direction labels
+  const ax=pv([1.68,0,0]), ay=pv([0,1.68,0]), az=pv([0,0,1.68]);
+  [[ax,'rgba(255,80,80,0.82)','X'],[ay,'rgba(40,200,80,0.82)','Y'],[az,'rgba(80,140,255,0.82)','Z']].forEach(([p,c,lbl])=>{
+    g3.fillStyle=c; g3.font='bold 8px Fira Code';
+    g3.fillText(lbl, p[0]+3, p[1]+3);
   });
   g3.restore();
 }
@@ -684,10 +758,13 @@ function doExtrude(h){
 // ── VIEW PRESETS ─────────────────────────────────────────────────────────────
 function setView(v){
   const P={
-    iso:  {theta:Math.PI*0.3,  phi:Math.PI*0.28},
-    top:  {theta:0,             phi:Math.PI/2-0.01}, // +Z above, Y up on screen
-    front:{theta:0,             phi:0.02},            // from +X looking inward
-    right:{theta:Math.PI/2,     phi:0.02},            // from +Y
+    iso:  {theta: Math.PI/4,        phi: ISO_PHI},         // NE-T standard iso
+    top:  {theta: 0,                phi: Math.PI/2-0.01},  // from +Z
+    front:{theta:-Math.PI/2,        phi: 0.02},            // from -Y
+    right:{theta: 0,                phi: 0.02},            // from +X
+    left: {theta: Math.PI,          phi: 0.02},            // from -X
+    back: {theta: Math.PI/2,        phi: 0.02},            // from +Y
+    btm:  {theta: 0,                phi:-(Math.PI/2-0.01)},// from -Z
   };
   if(P[v]){cam.theta=P[v].theta; cam.phi=P[v].phi;}
   render();
@@ -710,9 +787,49 @@ function frameScene(){
 
 // ── MOUSE & TOUCH EVENTS ─────────────────────────────────────────────────────
 let orbitStart=null, panStart=null;
+// True isometric elevation: arctan(1/√2) ≈ 35.26°
+const ISO_PHI=Math.atan(1/Math.sqrt(2));
+
+// Camera angles for each nav cube corner vertex (cube X=world X, Y=world Y, Z=world Z).
+// Vertex order matches the verts array in drawNavCube: [±1,±1,±1]
+const EDGE_PAIRS=[[4,5],[5,6],[6,7],[7,4],[0,1],[1,2],[2,3],[3,0],[0,4],[1,5],[2,6],[3,7]];
+// phi=π/4 for top-ring edges, -π/4 for bottom-ring, 0 for vertical edges
+const EDGE_CAM=[
+  {theta:-Math.PI/2,      phi: Math.PI/4, label:'FRT'}, // front-top
+  {theta: 0,              phi: Math.PI/4, label:'RGT'}, // right-top
+  {theta: Math.PI/2,      phi: Math.PI/4, label:'BKT'}, // back-top
+  {theta: Math.PI,        phi: Math.PI/4, label:'LFT'}, // left-top
+  {theta:-Math.PI/2,      phi:-Math.PI/4, label:'FRB'}, // front-bottom
+  {theta: 0,              phi:-Math.PI/4, label:'RGB'}, // right-bottom
+  {theta: Math.PI/2,      phi:-Math.PI/4, label:'BKB'}, // back-bottom
+  {theta: Math.PI,        phi:-Math.PI/4, label:'LFB'}, // left-bottom
+  {theta:-3*Math.PI/4,    phi: 0.02,      label:'FLV'}, // front-left vert
+  {theta:-Math.PI/4,      phi: 0.02,      label:'FRV'}, // front-right vert
+  {theta: Math.PI/4,      phi: 0.02,      label:'BRV'}, // back-right vert
+  {theta: 3*Math.PI/4,    phi: 0.02,      label:'BLV'}, // back-left vert
+];
+
+const CORNER_CAM=[
+  {theta:-3*Math.PI/4, phi:-ISO_PHI, label:'SW-B'}, // 0:[-1,-1,-1]
+  {theta: -Math.PI/4,  phi:-ISO_PHI, label:'SE-B'}, // 1:[+1,-1,-1]
+  {theta:  Math.PI/4,  phi:-ISO_PHI, label:'NE-B'}, // 2:[+1,+1,-1]
+  {theta: 3*Math.PI/4, phi:-ISO_PHI, label:'NW-B'}, // 3:[-1,+1,-1]
+  {theta:-3*Math.PI/4, phi: ISO_PHI, label:'SW-T'}, // 4:[-1,-1,+1]
+  {theta: -Math.PI/4,  phi: ISO_PHI, label:'SE-T'}, // 5:[+1,-1,+1]
+  {theta:  Math.PI/4,  phi: ISO_PHI, label:'NE-T'}, // 6:[+1,+1,+1] std iso
+  {theta: 3*Math.PI/4, phi: ISO_PHI, label:'NW-T'}, // 7:[-1,+1,+1]
+];
+
 // Nav cube interaction
 let navFaceCache=[];       // projected face data from last drawNavCube()
+let navCornerCache=[];     // projected corner positions {pos,cam,idx}
+let navEdgeCache=[];       // projected edge midpoint positions {pos,cam,idx}
+let navFaceNodeCache=[];   // projected face-center positions {pos,label}
 let navHoverFace=null;     // label of currently hovered face
+let navHoverCorner=null;   // index of hovered corner (0-7), or null
+let navHoverEdge=null;     // index of hovered edge (0-11), or null
+let navGlowState=null;     // {type:'corner'|'edge', idx} — currently glowing
+let navGlowTimer=null;     // timeout handle for glow fade-out
 let navOrbitStart=null;    // for drag-orbit on nav cube
 let _animReq=null;         // requestAnimationFrame handle
 const OS=0.007, ZS=0.001;
@@ -737,12 +854,46 @@ function ptInPoly(px,py,pts){
   return inside;
 }
 
-// Which nav cube face label is at (mx,my)? Returns null if none.
-function hitNavFace(mx,my){
-  // Test front-facing faces front-to-back (navFaceCache is already front-facing only)
+// Which edge midpoint (0-11) is within click radius? Returns null if none.
+function hitNavEdge(mx,my){
+  let best=null, bd=12; // medium radius — easier than corner
+  for(const e of navEdgeCache){
+    const d=Math.hypot(mx-e.pos[0],my-e.pos[1]);
+    if(d<bd){bd=d;best=e.idx;}
+  }
+  return best;
+}
+
+// Which nav cube corner (0-7) is at (mx,my)? Returns null if none.
+function hitNavCorner(mx,my){
+  let best=null, bd=7; // tightest radius — hardest to hit
+  for(const c of navCornerCache){
+    const d=Math.hypot(mx-c.pos[0],my-c.pos[1]);
+    if(d<bd){bd=d;best=c.idx;}
+  }
+  return best;
+}
+
+// Face center node — 20px radius, checked BEFORE edges/corners.
+function hitNavFaceNode(mx,my){
+  let best=null, bd=20;
+  for(const fc of navFaceNodeCache){
+    const d=Math.hypot(mx-fc.pos[0],my-fc.pos[1]);
+    if(d<bd){bd=d;best=fc.label;}
+  }
+  return best;
+}
+
+// Face polygon fallback — runs LAST, after all node checks.
+function hitNavFacePoly(mx,my){
   for(const f of navFaceCache)
     if(ptInPoly(mx,my,f.ps)) return f.label;
   return null;
+}
+
+// Combined: node first, then polygon (for hover tracking).
+function hitNavFace(mx,my){
+  return hitNavFaceNode(mx,my) || hitNavFacePoly(mx,my) || null;
 }
 
 // Camera view angles per face label.
@@ -788,7 +939,23 @@ cu.addEventListener('mousedown',e=>{
 
   // ── Nav cube: left-click snaps view, drag orbits ──────────────
   if(e.button===0 && isInNavCube(_mx,_my)){
-    const face=hitNavFace(_mx,_my);
+    // Priority: face center (20px) → edge (12px) → corner (7px) → face polygon
+    // Face center always wins — fat finger on a face beats nearby edge/corner.
+    const faceNode=hitNavFaceNode(_mx,_my);
+    if(faceNode){ snapToFace(faceNode); return; }
+    const edge=hitNavEdge(_mx,_my);
+    if(edge!==null){
+      const ev=EDGE_CAM[edge];
+      animateCam(ev.theta,ev.phi);
+      toast(ev.label+' EDGE'); return;
+    }
+    const corner=hitNavCorner(_mx,_my);
+    if(corner!==null){
+      const cv=CORNER_CAM[corner];
+      animateCam(cv.theta,cv.phi);
+      toast(cv.label+' ISO'); return;
+    }
+    const face=hitNavFacePoly(_mx,_my);
     if(face){ snapToFace(face); return; }
     // Drag on cube body → orbit
     navOrbitStart={x:e.clientX,y:e.clientY,th:cam.theta,ph:cam.phi};
@@ -911,13 +1078,42 @@ window.addEventListener('mousemove',e=>{
     render(); return;
   }
 
-  // Nav cube hover tracking
+  // Nav cube hover tracking — face center first, then edge, corner, polygon
   if(isInNavCube(sx,sy)){
-    const face=hitNavFace(sx,sy);
-    if(face!==navHoverFace){ navHoverFace=face; render(); }
-    cu.style.cursor=face?'pointer':'grab';
-  } else if(navHoverFace!==null){
-    navHoverFace=null; render();
+    const faceNode=hitNavFaceNode(sx,sy);
+    const edge    =faceNode===null?hitNavEdge(sx,sy):null;
+    const corner  =faceNode===null&&edge===null?hitNavCorner(sx,sy):null;
+    const facePoly=faceNode===null&&edge===null&&corner===null?hitNavFacePoly(sx,sy):null;
+    const face=faceNode||facePoly||null;
+    const changed=corner!==navHoverCorner||edge!==navHoverEdge||face!==navHoverFace;
+    if(changed){
+      // Update glow state when touching a corner or edge
+      if(faceNode!==null){ clearTimeout(navGlowTimer);navGlowTimer=null;
+        navGlowState={type:'face',label:faceNode}; }
+      else if(edge!==null){ clearTimeout(navGlowTimer);navGlowTimer=null;
+        navGlowState={type:'edge',idx:edge}; }
+      else if(corner!==null){ clearTimeout(navGlowTimer);navGlowTimer=null;
+        navGlowState={type:'corner',idx:corner}; }
+      else if(face!==null){ clearTimeout(navGlowTimer);navGlowTimer=null;
+        navGlowState={type:'face',label:face}; }
+      else if((navHoverCorner!==null||navHoverEdge!==null||navHoverFace!==null)&&!navGlowTimer){
+        // Left a node — start 280ms fade timer
+        navGlowTimer=setTimeout(()=>{
+          navGlowState=null; navGlowTimer=null; render();
+        },280);
+      }
+      navHoverCorner=corner; navHoverEdge=edge; navHoverFace=face;
+      render();
+    }
+    cu.style.cursor=(corner!==null||edge!==null||face)?'pointer':'grab';
+  } else if(navHoverFace!==null||navHoverCorner!==null||navHoverEdge!==null){
+    // Left nav cube entirely — start fade if not already running
+    if((navHoverCorner!==null||navHoverEdge!==null||navHoverFace!==null)&&!navGlowTimer){
+      navGlowTimer=setTimeout(()=>{
+        navGlowState=null; navGlowTimer=null; render();
+      },280);
+    }
+    navHoverFace=null; navHoverCorner=null; navHoverEdge=null; render();
     cu.style.cursor=activeTool==='select'?'default':'crosshair';
   }
 
