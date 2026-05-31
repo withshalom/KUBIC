@@ -1,459 +1,542 @@
 <!DOCTYPE html>
 <!--
   KERFsuite™ — KUBE · Kernel-Unified Build Environment
-  Copyright (C) 2024-2025 KERFsuite / withshalom
-  SPDX-License-Identifier: AGPL-3.0-or-later
-  Commercial use requires a separate license — see KERFsuite for details: https://withshalom.github.io
-  Coordinate system: X=right, Y=up-in-sketch, Z=extrusion/depth. Sketch plane: Z=0 (XY plane).
-  Matches KAD's XY coordinate space — no remapping on import/export.
+  Copyright (C) 2024-2025 KERFsuite / withshalom  SPDX-License-Identifier: AGPL-3.0-or-later
+  Coordinate system: X=right Y=up Z=extrusion. Sketch plane Z=0 (XY). Matches KAD exactly.
 -->
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KUBE — KERFsuite</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Syne:wght@600;800&display=swap" rel="stylesheet">
 <style>
-:root {
-  --void:#060e08; --panel:#0b1610; --panel2:#101e14; --hover:#172818;
-  --border:rgba(0,232,122,0.12); --border-hi:rgba(0,232,122,0.28);
-  --acc:#00e87a; --acc-dim:rgba(0,232,122,0.16); --acc2:#00b85a;
-  --t1:#c8f0d8; --t2:#5a9870; --t3:#2a5038;
-  --fm:'Fira Code',monospace; --fd:'Syne',sans-serif;
-  --sidebar-w:228px; --topbar-h:40px; --status-h:26px;
+:root{
+  --void:#080e14;--panel:#0c1420;--panel2:#101828;--hover:#182438;
+  --border:rgba(32,232,192,0.12);--border-hi:rgba(32,232,192,0.28);
+  --acc:#20e8c0;--acc-dim:rgba(32,232,192,0.16);--acc2:#18c8a0;
+  --brass:#d4aa40;--brass-dim:rgba(212,170,64,0.16);
+  --t1:#c8f0ee;--t2:#3a9088;--t3:#1a4050;
+  --fm:'Fira Code',monospace;--fd:'Syne',sans-serif;
+  --sidebar-w:240px;--topbar-h:40px;--status-h:26px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--void);
-  color:var(--t1);font-family:var(--fm);font-size:12px;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--void);color:var(--t1);font-family:var(--fm);font-size:12px;}
 #app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;width:100vw;height:100vh;}
-#sidebar{background:var(--panel);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;overflow:hidden;}
-.brand{padding:14px 12px 10px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:9px;}
+#sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+.brand{padding:12px 12px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0;}
 .brand-mark{width:34px;height:34px;border-radius:9px;flex-shrink:0;
-  background:linear-gradient(135deg,#003820,#00a050,#00e87a);
-  box-shadow:0 0 14px rgba(0,232,122,0.35);display:flex;align-items:center;
-  justify-content:center;font-family:var(--fm);font-size:10px;font-weight:600;color:#060e08;}
-.brand-name{font-family:var(--fd);font-size:14px;font-weight:800;
-  color:var(--acc);letter-spacing:0.04em;}
-.brand-sub{font-size:8px;color:var(--t3);letter-spacing:0.08em;text-transform:uppercase;margin-top:1px;}
-.tool-section{padding:10px 8px 4px;}
-.tool-section-label{font-size:8px;letter-spacing:0.12em;color:var(--t3);
-  text-transform:uppercase;padding:0 4px 6px;}
-.tool-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;
-  background:var(--border);border-radius:6px;overflow:hidden;}
-.tool-btn{background:var(--panel2);border:none;cursor:pointer;padding:9px 4px 7px;
+  background:linear-gradient(135deg,#001c18,#20e8c0,#d4aa40);
+  box-shadow:0 0 14px rgba(32,232,192,0.35);display:flex;align-items:center;
+  justify-content:center;font-family:var(--fm);font-size:10px;font-weight:600;color:#080e14;}
+.brand-name{font-family:var(--fd);font-size:14px;font-weight:800;color:var(--acc);letter-spacing:.04em;}
+.brand-sub{font-size:8px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-top:1px;}
+.sb-sec{padding:8px 8px 4px;border-top:1px solid var(--border);}
+.sb-sec-lbl{font-size:8px;letter-spacing:.12em;color:var(--t3);text-transform:uppercase;padding:0 4px 5px;}
+.tool-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border-radius:6px;overflow:hidden;}
+.tool-grid.cols2{grid-template-columns:1fr 1fr;}
+.tool-btn{background:var(--panel2);border:none;cursor:pointer;padding:8px 4px 6px;
   display:flex;flex-direction:column;align-items:center;gap:3px;
-  transition:background 0.12s;position:relative;overflow:hidden;color:var(--t2);}
+  transition:background .12s;position:relative;overflow:hidden;color:var(--t2);}
 .tool-btn:hover{background:var(--hover);color:var(--t1);}
 .tool-btn.active{background:var(--hover);color:var(--acc);}
-.tool-btn.active::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:var(--acc);box-shadow:0 0 8px var(--acc);}
-.tool-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
-.tool-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;
-  stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
-.tool-label{font-size:7.5px;font-family:var(--fm);letter-spacing:0.06em;text-transform:uppercase;}
-.sb-panel{padding:10px 12px;border-top:1px solid var(--border);}
-.sb-panel-label{font-size:8px;letter-spacing:0.12em;color:var(--t3);
-  text-transform:uppercase;margin-bottom:8px;}
-.sb-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.tool-btn.active::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc);box-shadow:0 0 8px var(--acc);}
+.ti{width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
+.ti svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+.tl{font-size:7px;font-family:var(--fm);letter-spacing:.06em;text-transform:uppercase;}
+.sb-row{display:flex;align-items:center;justify-content:space-between;padding:4px 8px;}
+.sb-row label{font-size:9px;color:var(--t2);}
+.sb-input{background:var(--panel2);border:1px solid var(--border);border-radius:4px;
+  color:var(--acc);font-family:var(--fm);font-size:10px;padding:3px 6px;width:70px;outline:none;}
+.sb-input:focus{border-color:var(--acc);}
 .toggle-box{width:24px;height:13px;border-radius:7px;border:1px solid var(--border-hi);
-  background:var(--hover);position:relative;transition:background 0.15s;cursor:pointer;}
+  background:var(--hover);position:relative;transition:background .15s;cursor:pointer;}
 .toggle-box.on{background:var(--acc-dim);}
 .toggle-box::after{content:'';position:absolute;top:2px;left:2px;width:9px;height:9px;
-  border-radius:50%;background:var(--t3);transition:all 0.15s;}
+  border-radius:50%;background:var(--t3);transition:all .15s;}
 .toggle-box.on::after{left:13px;background:var(--acc);}
-.view-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;}
+.view-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:0 4px 4px;}
 .vb{background:var(--panel2);border:1px solid var(--border);border-radius:4px;
-  color:var(--t2);font-family:var(--fm);font-size:9px;letter-spacing:0.08em;
-  text-transform:uppercase;padding:5px;cursor:pointer;transition:all 0.12s;}
+  color:var(--t2);font-family:var(--fm);font-size:8px;letter-spacing:.06em;
+  text-transform:uppercase;padding:4px 2px;cursor:pointer;text-align:center;transition:all .12s;}
 .vb:hover{background:var(--hover);color:var(--t1);border-color:var(--border-hi);}
-.sb-footer{margin-top:auto;padding:12px;border-top:1px solid var(--border);
-  display:flex;flex-direction:column;gap:4px;}
-.kv-btn{width:100%;padding:7px;background:var(--acc-dim);border:1px solid var(--border-hi);
-  border-radius:5px;color:var(--acc);font-family:var(--fm);font-size:10px;
-  letter-spacing:0.08em;cursor:pointer;text-transform:uppercase;transition:background 0.12s;}
-.kv-btn:hover{background:rgba(0,232,122,0.26);}
+.sb-footer{margin-top:auto;padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:3px;}
+.kv-btn{width:100%;padding:6px;background:var(--acc-dim);border:1px solid var(--border-hi);
+  border-radius:5px;color:var(--acc);font-family:var(--fm);font-size:9px;
+  letter-spacing:.08em;cursor:pointer;text-transform:uppercase;transition:background .12s;}
+.kv-btn:hover{background:rgba(32,232,192,0.26);}
+.kv-btn.brass{background:var(--brass-dim);border-color:rgba(212,170,64,0.28);color:var(--brass);}
+.kv-btn.brass:hover{background:rgba(212,170,64,0.26);}
 #main{display:flex;flex-direction:column;overflow:hidden;}
 #topbar{height:var(--topbar-h);background:var(--panel);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 8px;flex-shrink:0;}
-.tb-btn{height:28px;padding:0 10px;background:transparent;border:none;
-  color:var(--t2);font-family:var(--fm);font-size:10px;letter-spacing:0.06em;
-  text-transform:uppercase;cursor:pointer;border-radius:4px;transition:all 0.12s;}
+  display:flex;align-items:center;padding:0 8px;flex-shrink:0;gap:4px;}
+.tb-btn{height:26px;padding:0 9px;background:transparent;border:none;color:var(--t2);
+  font-family:var(--fm);font-size:9px;letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;border-radius:4px;transition:all .12s;}
 .tb-btn:hover{background:var(--hover);color:var(--t1);}
-.tb-sep{width:1px;height:20px;background:var(--border);margin:0 4px;}
+.tb-sep{width:1px;height:18px;background:var(--border);margin:0 2px;}
 .tb-spacer{flex:1;}
-.tb-coord{font-family:var(--fm);font-size:10px;color:var(--t2);padding:0 8px;display:flex;gap:12px;}
+.tb-coord{font-family:var(--fm);font-size:9px;color:var(--t2);padding:0 6px;display:flex;gap:10px;}
 .tb-coord span{color:var(--acc);}
-.tb-mode{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--acc2);
-  padding:3px 8px;border:1px solid var(--border);border-radius:3px;
-  margin-left:8px;background:var(--acc-dim);}
+.tb-mode{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc2);
+  padding:3px 7px;border:1px solid var(--border);border-radius:3px;background:var(--acc-dim);}
 #canvas-wrap{flex:1;position:relative;overflow:hidden;background:var(--void);}
 #kube-3d,#kube-ui{position:absolute;top:0;left:0;width:100%;height:100%;display:block;}
-#kube-3d{z-index:1;} #kube-ui{z-index:2;cursor:crosshair;}
+#kube-3d{z-index:1;}#kube-ui{z-index:2;cursor:crosshair;}
 #statusbar{height:var(--status-h);background:var(--panel);border-top:1px solid var(--border);
-  display:flex;align-items:center;padding:0 10px;gap:16px;flex-shrink:0;}
-.sb-item{font-size:9.5px;color:var(--t3);letter-spacing:0.06em;}
-.sb-item span{color:var(--t2);} .sb-item.hi span{color:var(--acc);}
+  display:flex;align-items:center;padding:0 10px;gap:14px;flex-shrink:0;}
+.sb-item{font-size:9px;color:var(--t3);letter-spacing:.06em;}
+.sb-item span{color:var(--t2);}.sb-item.hi span{color:var(--acc);}
 #dim-wrap{position:absolute;background:var(--panel);border:1px solid var(--border-hi);
   border-radius:5px;padding:8px 10px;display:none;z-index:10;min-width:130px;}
-#dim-wrap .dl{font-size:9px;color:var(--t3);margin-bottom:4px;letter-spacing:0.06em;}
-#dim-wrap input{background:none;border:none;color:var(--acc);font-family:var(--fm);
-  font-size:12px;width:110px;outline:none;}
-#toast{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);
+#dim-wrap .dl{font-size:9px;color:var(--t3);margin-bottom:4px;letter-spacing:.06em;}
+#dim-wrap input{background:none;border:none;color:var(--acc);font-family:var(--fm);font-size:12px;width:110px;outline:none;}
+#toast{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);
   background:var(--panel2);border:1px solid var(--border-hi);border-radius:6px;
-  padding:6px 14px;font-size:10px;color:var(--t1);pointer-events:none;
-  opacity:0;transition:opacity 0.25s;z-index:20;white-space:nowrap;}
+  padding:5px 12px;font-size:9px;color:var(--t1);pointer-events:none;
+  opacity:0;transition:opacity .25s;z-index:20;white-space:nowrap;}
 #toast.show{opacity:1;}
+/* startup */
+.kube-su-ov{position:fixed;inset:0;background:rgba(4,8,14,.94);display:flex;align-items:center;justify-content:center;z-index:100;}
+.kube-su-bx{background:var(--panel);border:1px solid var(--border-hi);border-radius:12px;width:300px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6);}
+.kube-su-hd{padding:16px 18px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.kube-su-mk{width:36px;height:36px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,#001c18,#20e8c0,#d4aa40);display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:10px;font-weight:600;color:#080e14;}
+.kube-su-ttl{font-family:var(--fd);font-size:15px;font-weight:800;color:var(--acc);letter-spacing:.04em;}
+.kube-su-sub{font-size:7px;color:var(--t3);letter-spacing:.10em;text-transform:uppercase;margin-top:1px;}
+.kube-su-bd{padding:18px 18px 6px;}
+.kube-su-lbl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:8px;}
+.kube-su-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:4px;}
+.kube-su-btn{background:rgba(32,232,192,.04);border-radius:7px;padding:12px;cursor:pointer;transition:all .13s;text-align:center;font-family:var(--fm);border:1px solid transparent;}
+.kube-su-btn[data-u="mm"]{border-color:rgba(32,232,192,.22);}
+.kube-su-btn[data-u="in"]{border-color:rgba(212,170,64,.22);}
+.kube-su-btn[data-u="mm"] .kube-su-big{color:#20e8c0;}
+.kube-su-btn[data-u="in"] .kube-su-big{color:#d4aa40;}
+.kube-su-btn[data-u="mm"] .kube-su-sm{color:rgba(32,232,192,.40);}
+.kube-su-btn[data-u="in"] .kube-su-sm{color:rgba(212,170,64,.40);}
+.kube-su-btn[data-u="mm"].act{border-color:#20e8c0;background:rgba(32,232,192,.12);}
+.kube-su-btn[data-u="in"].act{border-color:#d4aa40;background:rgba(212,170,64,.12);}
+.kube-su-btn:hover{opacity:.85;}
+.kube-su-big{font-size:17px;font-weight:700;display:block;margin-bottom:2px;}
+.kube-su-sm{font-size:8px;letter-spacing:.06em;display:block;}
+.kube-su-ft{padding:14px 18px 16px;}
+.kube-su-go{width:100%;padding:10px;border-radius:6px;cursor:pointer;background:var(--acc-dim);border:1px solid var(--border-hi);color:var(--acc);font-family:var(--fm);font-size:10px;letter-spacing:.10em;text-transform:uppercase;transition:background .13s;}
+.kube-su-go:hover{background:rgba(32,232,192,.28);}
 </style>
-</head>
-<body>
+</head><body>
+
+<div class="kube-su-ov" id="kube-su-ov">
+  <div class="kube-su-bx">
+    <div class="kube-su-hd">
+      <div class="kube-su-mk">KB</div>
+      <div><div class="kube-su-ttl">KUBE</div><div class="kube-su-sub">Kernel-Unified Build Environment</div></div>
+    </div>
+    <div class="kube-su-bd">
+      <div class="kube-su-lbl">Units</div>
+      <div class="kube-su-grid" id="kube-su-units">
+        <button class="kube-su-btn act" data-u="mm"><span class="kube-su-big">mm</span><span class="kube-su-sm">millimeters</span></button>
+        <button class="kube-su-btn" data-u="in"><span class="kube-su-big">in</span><span class="kube-su-sm">inches</span></button>
+      </div>
+    </div>
+    <div class="kube-su-ft"><button class="kube-su-go" id="kube-su-go">Begin &rarr;</button></div>
+  </div>
+</div>
+
 <div id="app">
-  <div id="sidebar">
-    <div class="brand">
-      <div class="brand-mark">KB</div>
-      <div>
-        <div class="brand-name">KUBE</div>
-        <div class="brand-sub">3D Solid Modeler</div>
-      </div>
-    </div>
-    <div class="tool-section">
-      <div class="tool-section-label">Tools</div>
-      <div class="tool-grid">
-        <button class="tool-btn active" id="btn-select" onclick="setTool('select')" title="Select (S)">
-          <div class="tool-icon"><svg viewBox="0 0 24 24"><path d="M5 3l14 9-7 2-4 7z"/></svg></div>
-          <span class="tool-label">Select</span></button>
-        <button class="tool-btn" id="btn-line" onclick="setTool('line')" title="Line (L)">
-          <div class="tool-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="20" x2="20" y2="4"/><circle cx="4" cy="20" r="1.5"/><circle cx="20" cy="4" r="1.5"/></svg></div>
-          <span class="tool-label">Line</span></button>
-        <button class="tool-btn" id="btn-rect" onclick="setTool('rect')" title="Rectangle (R)">
-          <div class="tool-icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1"/></svg></div>
-          <span class="tool-label">Rect</span></button>
-        <button class="tool-btn" id="btn-circle" onclick="setTool('circle')" title="Circle (C)">
-          <div class="tool-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></div>
-          <span class="tool-label">Circle</span></button>
-        <button class="tool-btn" id="btn-extrude" onclick="setTool('extrude')" title="Extrude (E)">
-          <div class="tool-icon"><svg viewBox="0 0 24 24"><rect x="4" y="14" width="11" height="7" rx="1"/><polyline points="4,14 8,9 19,9 15,14"/><line x1="19" y1="9" x2="19" y2="16" stroke-dasharray="2,2"/></svg></div>
-          <span class="tool-label">Extrude</span></button>
-        <button class="tool-btn" id="btn-clear" onclick="clearSketch()" title="Clear sketch">
-          <div class="tool-icon"><svg viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/></svg></div>
-          <span class="tool-label">Clear</span></button>
-      </div>
-    </div>
-    <div class="sb-panel">
-      <div class="sb-panel-label">View</div>
-      <div class="view-grid" style="grid-template-columns:1fr 1fr 1fr;">
-        <button class="vb" onclick="setView('iso')">ISO</button>
-        <button class="vb" onclick="setView('top')">TOP</button>
-        <button class="vb" onclick="setView('front')">FRONT</button>
-        <button class="vb" onclick="setView('right')">RIGHT</button>
-        <button class="vb" onclick="setView('btm')">BTM</button>
-        <button class="vb" onclick="setView('left')">LEFT</button>
-        <button class="vb" onclick="setView('back')">BACK</button>
-      </div>
-      <div class="sb-row">
-        <span style="font-size:10px;color:var(--t2);">Snap</span>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:10px;color:var(--acc);" id="snap-label">10mm</span>
-          <div class="toggle-box on" id="snap-box" onclick="toggleSnap()"></div>
-        </div>
-      </div>
-      <div class="sb-row">
-        <span style="font-size:10px;color:var(--t2);">Grid</span>
-        <div class="toggle-box on" id="grid-box" onclick="toggleGrid()"></div>
-      </div>
-    </div>
-    <div class="sb-panel">
-      <div class="sb-panel-label">Scene</div>
-      <div id="obj-list" style="font-size:9.5px;color:var(--t2);line-height:1.8;">
-        <span style="color:var(--t3);">Empty</span>
-      </div>
-    </div>
-    <div class="sb-footer">
-      <button class="kv-btn" onclick="newFile()">New</button>
-      <button class="kv-btn" onclick="saveFile()">Save .KBE</button>
-      <button class="kv-btn" onclick="loadFile()">Open .KBE</button>
-      <button class="kv-btn" onclick="exportSTL()">Export STL</button>
-      <input type="file" id="file-in" accept=".kbe,.json" style="display:none" onchange="onFileLoad(event)">
+<div id="sidebar">
+  <div class="brand">
+    <div class="brand-mark">KB</div>
+    <div><div class="brand-name">KUBE</div><div class="brand-sub">3D Solid Modeler</div></div>
+  </div>
+
+  <div class="sb-sec">
+    <div class="sb-sec-lbl">Draw</div>
+    <div class="tool-grid">
+      <button class="tool-btn active" id="btn-select" onclick="setTool('select')"><div class="ti"><svg viewBox="0 0 24 24"><path d="M5 3l14 9-7 2-4 7z"/></svg></div><span class="tl">Select</span></button>
+      <button class="tool-btn" id="btn-line" onclick="setTool('line')"><div class="ti"><svg viewBox="0 0 24 24"><line x1="4" y1="20" x2="20" y2="4"/><circle cx="4" cy="20" r="1.5" fill="currentColor"/><circle cx="20" cy="4" r="1.5" fill="currentColor"/></svg></div><span class="tl">Line</span></button>
+      <button class="tool-btn" id="btn-arc" onclick="setTool('arc')"><div class="ti"><svg viewBox="0 0 24 24"><path d="M4 20 Q12 4 20 20"/></svg></div><span class="tl">Arc</span></button>
+      <button class="tool-btn" id="btn-rect" onclick="setTool('rect')"><div class="ti"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1"/></svg></div><span class="tl">Rect</span></button>
+      <button class="tool-btn" id="btn-circle" onclick="setTool('circle')"><div class="ti"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></div><span class="tl">Circle</span></button>
+      <button class="tool-btn" id="btn-polygon" onclick="setTool('polygon')"><div class="ti"><svg viewBox="0 0 24 24"><polygon points="12,3 20,8 20,16 12,21 4,16 4,8"/></svg></div><span class="tl">Poly</span></button>
     </div>
   </div>
 
-  <div id="main">
-    <div id="topbar">
-      <span style="font-family:var(--fd);font-weight:800;font-size:14px;color:var(--acc);
-        letter-spacing:0.04em;padding-right:12px;">KUBE</span>
-      <button class="tb-btn" onclick="frameScene()">Frame</button>
-      <div class="tb-sep"></div>
-      <button class="tb-btn" onclick="undo()" title="Ctrl+Z">Undo</button>
-      <div class="tb-spacer"></div>
-      <div class="tb-coord">
-        X<span id="cx">0.0</span> &nbsp; Y<span id="cy">0.0</span>
-      </div>
-      <div class="tb-mode">SKETCH · XY · Z=0</div>
+  <div class="sb-sec">
+    <div class="sb-sec-lbl">Modify</div>
+    <div class="tool-grid cols2">
+      <button class="tool-btn" id="btn-fillet" onclick="setTool('fillet')"><div class="ti"><svg viewBox="0 0 24 24"><path d="M4 20 L4 8 Q4 4 8 4 L20 4"/></svg></div><span class="tl">Fillet</span></button>
+      <button class="tool-btn" id="btn-offset" onclick="setTool('offset')"><div class="ti"><svg viewBox="0 0 24 24"><path d="M4 12 L20 12 M4 7 L20 7" stroke-dasharray="2 2"/></svg></div><span class="tl">Offset</span></button>
     </div>
-    <div id="canvas-wrap">
-      <canvas id="kube-3d"></canvas>
-      <canvas id="kube-ui"></canvas>
-      <div id="dim-wrap">
-        <div class="dl" id="dim-lbl">Extrude height (mm)</div>
-        <input id="dim-in" type="text" placeholder="0" autocomplete="off">
-      </div>
-      <div id="toast"></div>
+    <div class="sb-row" id="fillet-row">
+      <label>Fillet R</label>
+      <input class="sb-input" id="fillet-r" type="number" value="5" min="0.1" step="0.5">
     </div>
-    <div id="statusbar">
-      <div class="sb-item hi"><span id="st-tool">SELECT</span></div>
-      <div class="sb-item">Lines <span id="st-lines">0</span></div>
-      <div class="sb-item">Shapes <span id="st-shapes">0</span></div>
-      <div class="sb-item">Solids <span id="st-solids">0</span></div>
-      <div class="sb-item" style="margin-left:auto;color:var(--t3);">
-        Right-drag=Orbit · Scroll=Zoom · Mid=Pan · Esc=Cancel · E=Extrude
-      </div>
+    <div class="sb-row" id="offset-row" style="display:none">
+      <label>Offset D</label>
+      <input class="sb-input" id="offset-d" type="number" value="5" min="0.1" step="0.5">
+    </div>
+    <div class="sb-row" id="poly-row" style="display:none">
+      <label>Sides</label>
+      <input class="sb-input" id="poly-sides" type="number" value="6" min="3" max="64" step="1">
     </div>
   </div>
+
+  <div class="sb-sec">
+    <div class="sb-sec-lbl">Solid</div>
+    <div class="tool-grid cols2">
+      <button class="tool-btn" id="btn-extrude" onclick="setTool('extrude')"><div class="ti"><svg viewBox="0 0 24 24"><rect x="4" y="14" width="11" height="7" rx="1"/><polyline points="4,14 8,9 19,9 15,14"/><line x1="19" y1="9" x2="19" y2="16" stroke-dasharray="2,2"/></svg></div><span class="tl">Extrude</span></button>
+      <button class="tool-btn" id="btn-clear" onclick="clearSketch()"><div class="ti"><svg viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/></svg></div><span class="tl">Clear</span></button>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <div class="sb-sec-lbl">View</div>
+    <div class="view-grid">
+      <button class="vb" onclick="setView('iso')">ISO</button>
+      <button class="vb" onclick="setView('top')">TOP</button>
+      <button class="vb" onclick="setView('front')">FRT</button>
+      <button class="vb" onclick="setView('right')">RGT</button>
+      <button class="vb" onclick="setView('left')">LFT</button>
+      <button class="vb" onclick="setView('back')">BCK</button>
+      <button class="vb" onclick="setView('btm')">BTM</button>
+      <button class="vb" onclick="frameScene()">FIT</button>
+    </div>
+    <div class="sb-row">
+      <label>Snap</label>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <span style="font-size:9px;color:var(--acc);" id="snap-label">10mm</span>
+        <div class="toggle-box on" id="snap-box" onclick="toggleSnap()"></div>
+      </div>
+    </div>
+    <div class="sb-row">
+      <label>Grid</label>
+      <div class="toggle-box on" id="grid-box" onclick="toggleGrid()"></div>
+    </div>
+    <div class="sb-row">
+      <label>Endpoint</label>
+      <div class="toggle-box on" id="esnap-box" onclick="toggleEndsnap()"></div>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <div class="sb-sec-lbl">Scene</div>
+    <div id="obj-list" style="font-size:9px;color:var(--t2);line-height:1.9;padding:0 8px 4px;">
+      <span style="color:var(--t3)">Empty</span>
+    </div>
+  </div>
+
+  <div class="sb-footer">
+    <button class="kv-btn" onclick="newFile()">New</button>
+    <button class="kv-btn" onclick="saveFile()">Save .KBE</button>
+    <button class="kv-btn" onclick="loadFile()">Open .KBE</button>
+    <button class="kv-btn brass" onclick="exportSTL()">Export STL</button>
+    <input type="file" id="file-in" accept=".kbe,.json" style="display:none" onchange="onFileLoad(event)">
+  </div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <span style="font-family:var(--fd);font-weight:800;font-size:13px;color:var(--acc);letter-spacing:.04em;padding-right:10px;">KUBE</span>
+    <button class="tb-btn" onclick="undo()">Undo</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="deleteSelected()">Delete</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="selectAll()">All</button>
+    <div class="tb-spacer"></div>
+    <div class="tb-coord">X<span id="cx">0.0</span>&nbsp;Y<span id="cy">0.0</span></div>
+    <div class="tb-mode" id="tb-mode">SKETCH · XY · Z=0</div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="kube-3d"></canvas>
+    <canvas id="kube-ui"></canvas>
+    <div id="dim-wrap">
+      <div class="dl" id="dim-lbl">Extrude height (mm)</div>
+      <input id="dim-in" type="text" placeholder="0" autocomplete="off">
+    </div>
+    <div id="toast"></div>
+  </div>
+  <div id="statusbar">
+    <div class="sb-item hi"><span id="st-tool">SELECT</span></div>
+    <div class="sb-item">Lines <span id="st-lines">0</span></div>
+    <div class="sb-item">Arcs <span id="st-arcs">0</span></div>
+    <div class="sb-item">Shapes <span id="st-shapes">0</span></div>
+    <div class="sb-item">Solids <span id="st-solids">0</span></div>
+    <div class="sb-item" style="margin-left:auto;color:var(--t3);">Right-drag=Orbit · Scroll=Zoom · Mid=Pan · Tab=Top · Esc=Cancel</div>
+  </div>
+</div>
 </div>
 
 <script>
 'use strict';
 // ═══════════════════════════════════════════════════════════════════════════
 // KUBE — 3D-native drafting. Pure Canvas2D perspective renderer.
-//
-// COORDINATE SYSTEM
-//   X = right    (matches KAD X)
-//   Y = up / north on sketch plane  (matches KAD Y)
-//   Z = extrusion depth / out of screen
-//   Sketch plane: Z=0  (XY plane)
-//   Extrusions grow in +Z
-//   Camera world-up = Z axis [0,0,1]
-//   "Top" view: camera above along +Z, Y points screen-up → identical to KAD
+// Geometry: LINE ARC CIRCLE POLYLINE on Z=0 XY sketch plane.
+// Borrowing arc/fillet/polygon/snap logic from KAD (KERFsuite 2D drafting).
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── VECTOR MATH ────────────────────────────────────────────────────────────
+// ── UNITS ───────────────────────────────────────────────────────────────────
+let unitMode='mm';
+const SNAP_MM=10, SNAP_IN=0.25;
+
+// ── VECTOR MATH ─────────────────────────────────────────────────────────────
 const V={
   add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],
   sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],
-  scale:(a,s)=>[a[0]*s,a[1]*s,a[2]*s],
   dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
-  cross:(a,b)=>[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]],
+  cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
   norm:a=>{const l=Math.sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2])||1;return[a[0]/l,a[1]/l,a[2]/l];}
 };
 
-// ── CAMERA — Z-up spherical ─────────────────────────────────────────────────
-// theta = azimuth in XY plane (0=+X axis)
-// phi   = elevation above XY plane (0=horizontal, π/2=straight up along Z)
-// Eye orbits around target with Z as the "vertical" axis.
+// ── GEOMETRY MATH (from KAD) ─────────────────────────────────────────────
+function normAngle(a){a=a%(2*Math.PI);return a<0?a+2*Math.PI:a;}
+function angleOnArc(a,startA,endA,ccw){
+  a=normAngle(a);startA=normAngle(startA);endA=normAngle(endA);
+  if(ccw){if(startA<=endA)return a>=startA&&a<=endA;return a>=startA||a<=endA;}
+  else{if(endA<=startA)return a>=endA&&a<=startA;return a>=endA||a<=startA;}
+}
+function circumscribedCircle(p1,p2,p3){
+  const ax=p1.x,ay=p1.y,bx=p2.x,by=p2.y,cx=p3.x,cy=p3.y;
+  const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
+  if(Math.abs(D)<1e-10)return null;
+  const ux=((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D;
+  const uy=((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
+  return{cx:ux,cy:uy,r:Math.hypot(ax-ux,ay-uy)};
+}
+function lineIntersectPt(l1,l2){
+  const dx1=l1.x2-l1.x1,dy1=l1.y2-l1.y1,dx2=l2.x2-l2.x1,dy2=l2.y2-l2.y1;
+  const denom=dx1*dy2-dy1*dx2;if(Math.abs(denom)<1e-10)return null;
+  const t=((l2.x1-l1.x1)*dy2-(l2.y1-l1.y1)*dx2)/denom;
+  return{x:l1.x1+t*dx1,y:l1.y1+t*dy1};
+}
+
+// ── CAMERA (Z-up spherical) ──────────────────────────────────────────────────
 const cam={
-  target:[0,0,0], theta:Math.PI*0.3, phi:Math.PI*0.28, radius:380,
-  fov:Math.PI/4,
-
+  target:[0,0,0],theta:Math.PI*0.3,phi:Math.PI*0.28,radius:380,fov:Math.PI/4,
   eye(){
-    const sp=Math.sin(this.phi), cp=Math.cos(this.phi);
-    const st=Math.sin(this.theta), ct=Math.cos(this.theta);
-    // Z-up spherical: phi lifts the eye along Z
-    return[
-      this.target[0] + this.radius*cp*ct,  // X
-      this.target[1] + this.radius*cp*st,  // Y
-      this.target[2] + this.radius*sp      // Z (up)
-    ];
+    const sp=Math.sin(this.phi),cp=Math.cos(this.phi),st=Math.sin(this.theta),ct=Math.cos(this.theta);
+    return[this.target[0]+this.radius*cp*ct,this.target[1]+this.radius*cp*st,this.target[2]+this.radius*sp];
   },
-
   basis(){
-    const eye=this.eye();
-    const fwd=V.norm(V.sub(this.target,eye));
-    // World up = Z. Gimbal-lock guard: if looking nearly along Z, use Y.
+    const eye=this.eye(),fwd=V.norm(V.sub(this.target,eye));
     const wu=Math.abs(fwd[2])>0.98?[0,1,0]:[0,0,1];
-    const right=V.norm(V.cross(fwd,wu));
-    const up=V.cross(right,fwd);
+    const right=V.norm(V.cross(fwd,wu)),up=V.cross(right,fwd);
     return{eye,fwd,right,up};
   }
 };
 
-// ── CANVAS SETUP ────────────────────────────────────────────────────────────
-const c3=document.getElementById('kube-3d');
-const cu=document.getElementById('kube-ui');
-const g3=c3.getContext('2d');
-const gu=cu.getContext('2d');
+// ── CANVAS ───────────────────────────────────────────────────────────────────
+const c3=document.getElementById('kube-3d'),cu=document.getElementById('kube-ui');
+const g3=c3.getContext('2d'),gu=cu.getContext('2d');
 let W=0,H=0;
-
 function resize(){
   const wrap=document.getElementById('canvas-wrap');
-  W=wrap.clientWidth; H=wrap.clientHeight;
-  c3.width=cu.width=W; c3.height=cu.height=H;
-  render();
+  W=wrap.clientWidth;H=wrap.clientHeight;
+  c3.width=cu.width=W;c3.height=cu.height=H;render();
 }
 window.addEventListener('resize',resize);
 
-// ── PERSPECTIVE PROJECTION ──────────────────────────────────────────────────
+// ── PROJECTION ───────────────────────────────────────────────────────────────
 function project(x,y,z){
   const{eye,fwd,right,up}=cam.basis();
-  const dx=x-eye[0], dy=y-eye[1], dz=z-eye[2];
-  const pz=V.dot([dx,dy,dz],fwd);
-  if(pz<0.5) return null;
-  const px=V.dot([dx,dy,dz],right);
-  const py=V.dot([dx,dy,dz],up);
-  const th=Math.tan(cam.fov/2), ar=W/(H||1);
-  return[W/2+(px/pz/th/ar)*(W/2), H/2-(py/pz/th)*(H/2)];
+  const dx=x-eye[0],dy=y-eye[1],dz=z-eye[2];
+  const pz=V.dot([dx,dy,dz],fwd);if(pz<0.5)return null;
+  const px=V.dot([dx,dy,dz],right),py=V.dot([dx,dy,dz],up);
+  const th=Math.tan(cam.fov/2),ar=W/(H||1);
+  return[W/2+(px/pz/th/ar)*(W/2),H/2-(py/pz/th)*(H/2)];
 }
-
-// Screen pixel → Z=0 XY plane (returns {x,y} in world mm)
-// This is the core input function — every draw click lands on XY/Z=0.
 function screenToPlane(sx,sy){
   const{eye,fwd,right,up}=cam.basis();
-  const th=Math.tan(cam.fov/2), ar=W/(H||1);
-  const nx=(sx/W*2-1)*th*ar;
-  const ny=(1-sy/H*2)*th;
-  // World-space ray from eye through screen pixel
-  const rd=[
-    fwd[0]+nx*right[0]+ny*up[0],
-    fwd[1]+nx*right[1]+ny*up[1],
-    fwd[2]+nx*right[2]+ny*up[2]
-  ];
-  // Intersect Z=0 plane: eye.z + t*rd.z = 0
-  if(Math.abs(rd[2])<1e-6) return null; // ray parallel to XY plane
-  const t=-eye[2]/rd[2];
-  if(t<0) return null; // plane behind camera
-  return{x:eye[0]+t*rd[0], y:eye[1]+t*rd[1]};
+  const th=Math.tan(cam.fov/2),ar=W/(H||1);
+  const nx=(sx/W*2-1)*th*ar,ny=(1-sy/H*2)*th;
+  const rd=[fwd[0]+nx*right[0]+ny*up[0],fwd[1]+nx*right[1]+ny*up[1],fwd[2]+nx*right[2]+ny*up[2]];
+  if(Math.abs(rd[2])<1e-6)return null;
+  const t=-eye[2]/rd[2];if(t<0)return null;
+  return{x:eye[0]+t*rd[0],y:eye[1]+t*rd[1]};
 }
 
-// ── SETTINGS ────────────────────────────────────────────────────────────────
-let snapEnabled=true, snapGrid=10, showGrid=true;
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+let snapEnabled=true,snapGrid=10,showGrid=true,endSnapEnabled=true;
+const SNAP_PX=16;
+function toggleSnap(){snapEnabled=!snapEnabled;document.getElementById('snap-box').classList.toggle('on',snapEnabled);}
+function toggleGrid(){showGrid=!showGrid;document.getElementById('grid-box').classList.toggle('on',showGrid);render();}
+function toggleEndsnap(){endSnapEnabled=!endSnapEnabled;document.getElementById('esnap-box').classList.toggle('on',endSnapEnabled);}
 
-function snapped(pt){
-  if(!pt||!snapEnabled) return pt;
-  const G=snapGrid;
-  return{x:Math.round(pt.x/G)*G, y:Math.round(pt.y/G)*G};
+function gridSnap(pt){
+  if(!pt||!snapEnabled)return pt;
+  const G=snapGrid;return{x:Math.round(pt.x/G)*G,y:Math.round(pt.y/G)*G};
 }
 
-function toggleSnap(){
-  snapEnabled=!snapEnabled;
-  document.getElementById('snap-box').classList.toggle('on',snapEnabled);
-}
-function toggleGrid(){
-  showGrid=!showGrid;
-  document.getElementById('grid-box').classList.toggle('on',showGrid);
-  render();
+// ── SKETCH STORE ─────────────────────────────────────────────────────────────
+// Types: LINE, ARC, CIRCLE, POLYLINE (closed/open), RECT (kept for compat)
+const Sketch={
+  objects:[],nextId:1,
+  addLine(x1,y1,x2,y2){const o={id:this.nextId++,type:'LINE',x1,y1,x2,y2};this.objects.push(o);return o;},
+  addArc(cx,cy,r,startA,endA,ccw=true){const o={id:this.nextId++,type:'ARC',cx,cy,r,startA,endA,ccw};this.objects.push(o);return o;},
+  addCircle(cx,cy,r){const o={id:this.nextId++,type:'CIRCLE',cx,cy,r};this.objects.push(o);return o;},
+  addPolyline(pts,closed=false){const o={id:this.nextId++,type:'POLYLINE',pts:pts.map(p=>({x:p.x,y:p.y})),closed};this.objects.push(o);return o;},
+  remove(id){this.objects=this.objects.filter(o=>o.id!==id);},
+  removeAll(ids){const s=new Set(ids);this.objects=this.objects.filter(o=>!s.has(o.id));},
+  clear(){this.objects=[];this.nextId=1;},
+  allEndpoints(){
+    const pts=[];
+    for(const o of this.objects){
+      if(o.type==='LINE'){pts.push({x:o.x1,y:o.y1},{x:o.x2,y:o.y2});}
+      else if(o.type==='POLYLINE'){for(const p of o.pts)pts.push({x:p.x,y:p.y});}
+      else if(o.type==='CIRCLE'){pts.push({x:o.cx,y:o.cy},{x:o.cx+o.r,y:o.cy},{x:o.cx-o.r,y:o.cy},{x:o.cx,y:o.cy+o.r},{x:o.cx,y:o.cy-o.r});}
+      else if(o.type==='ARC'){
+        pts.push({x:o.cx+o.r*Math.cos(o.startA),y:o.cy+o.r*Math.sin(o.startA)});
+        pts.push({x:o.cx+o.r*Math.cos(o.endA),y:o.cy+o.r*Math.sin(o.endA)});
+        pts.push({x:o.cx,y:o.cy});
+      }
+    }
+    return pts;
+  }
+};
+
+// ── ENDPOINT SNAP (3D) ───────────────────────────────────────────────────────
+let snapActive=false,snapPoint=null;
+function findSnap3D(sx,sy){
+  if(!endSnapEnabled)return null;
+  const pts=Sketch.allEndpoints();
+  for(const p of lineChain)pts.push({x:p.x,y:p.y});
+  let best=null,bestD=SNAP_PX;
+  for(const p of pts){
+    const sp=project(p.x,p.y,0);if(!sp)continue;
+    const d=Math.hypot(sp[0]-sx,sp[1]-sy);
+    if(d<bestD){bestD=d;best=p;}
+  }
+  return best;
 }
 
-// ── SCENE DATA ───────────────────────────────────────────────────────────────
-// Sketch objects: all on Z=0 plane, coordinates are (x,y) world mm.
-// Matches KAD's coordinate space exactly.
-const sketch={objects:[]};
-const solids=[];
-const undos=[];
+// ── SOLIDS & UNDO ────────────────────────────────────────────────────────────
+const solids=[],undos=[];
+let selectedIds=new Set();
 
 function pushUndo(){
   undos.push(JSON.stringify({
-    objects:sketch.objects.map(o=>({...o})),
+    objects:Sketch.objects.map(o=>({...o,pts:o.pts?o.pts.map(p=>({...p})):undefined})),
+    nextId:Sketch.nextId,
     solids:solids.map(s=>({...s,base:s.base.map(p=>({...p}))}))
   }));
-  if(undos.length>60) undos.shift();
+  if(undos.length>60)undos.shift();
 }
-
 function undo(){
-  if(!undos.length) return toast('Nothing to undo');
+  if(!undos.length)return toast('Nothing to undo');
   const s=JSON.parse(undos.pop());
-  sketch.objects=s.objects;
-  solids.length=0; s.solids.forEach(x=>solids.push(x));
-  refreshUI(); render(); toast('Undo');
+  Sketch.objects=s.objects;Sketch.nextId=s.nextId||1;
+  solids.length=0;s.solids.forEach(x=>solids.push(x));
+  selectedIds.clear();refreshUI();render();toast('Undo');
+}
+function deleteSelected(){
+  if(!selectedIds.size)return;
+  pushUndo();Sketch.removeAll([...selectedIds]);selectedIds.clear();refreshUI();render();
+}
+function selectAll(){
+  selectedIds=new Set(Sketch.objects.map(o=>o.id));render();
 }
 
-// ── RENDER ───────────────────────────────────────────────────────────────────
+// ── RENDER ────────────────────────────────────────────────────────────────────
 function render(){
-  if(!W||!H) return;
-  g3.clearRect(0,0,W,H);
-  g3.fillStyle='#060e08'; g3.fillRect(0,0,W,H);
-  if(showGrid) drawGrid();
+  if(!W||!H)return;
+  g3.clearRect(0,0,W,H);g3.fillStyle='#080e14';g3.fillRect(0,0,W,H);
+  if(showGrid)drawGrid();
   drawSketch();
   drawSolids();
   drawNavCube();
   gu.clearRect(0,0,W,H);
   drawPreview();
+  drawSnapIndicator();
   drawCursor();
 }
 
-// Draw a segment between two 3D world points
 function seg(x1,y1,z1,x2,y2,z2){
-  const a=project(x1,y1,z1), b=project(x2,y2,z2);
-  if(!a||!b) return;
-  g3.beginPath(); g3.moveTo(a[0],a[1]); g3.lineTo(b[0],b[1]); g3.stroke();
+  const a=project(x1,y1,z1),b=project(x2,y2,z2);
+  if(!a||!b)return;
+  g3.beginPath();g3.moveTo(a[0],a[1]);g3.lineTo(b[0],b[1]);g3.stroke();
 }
 
-// ── GRID — drawn on XY plane (Z=0) ──────────────────────────────────────────
+// ── GRID ─────────────────────────────────────────────────────────────────────
 function drawGrid(){
-  const size=600, mi=10, ma=50;
+  const size=600,mi=10,ma=50;
   for(let i=-size;i<=size;i+=mi){
     const maj=i%ma===0;
-    g3.strokeStyle=maj?'rgba(0,232,122,0.16)':'rgba(0,232,122,0.055)';
-    g3.lineWidth=maj?0.8:0.4;
-    seg(i,-size,0, i,size,0);   // vertical lines (along Y) at each X
-    seg(-size,i,0, size,i,0);   // horizontal lines (along X) at each Y
+    g3.strokeStyle=maj?'rgba(32,232,192,0.16)':'rgba(32,232,192,0.055)';g3.lineWidth=maj?.8:.4;
+    seg(i,-size,0,i,size,0);seg(-size,i,0,size,i,0);
   }
-  // World axes at Z=0
   g3.lineWidth=1.3;
-  g3.strokeStyle='rgba(255,80,80,0.65)';   seg(0,0,0, 90,0,0);  // X — red
-  g3.strokeStyle='rgba(40,200,80,0.65)';   seg(0,0,0, 0,90,0);  // Y — green
-  g3.strokeStyle='rgba(80,140,255,0.65)';  seg(0,0,0, 0,0,90);  // Z — blue (extrusion)
+  g3.strokeStyle='rgba(255,80,80,0.65)';seg(0,0,0,90,0,0);
+  g3.strokeStyle='rgba(40,200,80,0.65)';seg(0,0,0,0,90,0);
+  g3.strokeStyle='rgba(80,140,255,0.65)';seg(0,0,0,0,0,90);
   g3.font='bold 9px Fira Code';
-  const ax=project(96,0,0), ay=project(0,96,0), az=project(0,0,96);
-  if(ax){g3.fillStyle='rgba(255,80,80,0.85)';   g3.fillText('X',ax[0]+2,ax[1]+3);}
-  if(ay){g3.fillStyle='rgba(40,200,80,0.85)';   g3.fillText('Y',ay[0]+2,ay[1]+3);}
-  if(az){g3.fillStyle='rgba(80,140,255,0.85)';  g3.fillText('Z',az[0]+2,az[1]+3);}
+  const ax=project(96,0,0),ay=project(0,96,0),az=project(0,0,96);
+  if(ax){g3.fillStyle='rgba(255,80,80,0.85)';g3.fillText('X',ax[0]+2,ax[1]+3);}
+  if(ay){g3.fillStyle='rgba(40,200,80,0.85)';g3.fillText('Y',ay[0]+2,ay[1]+3);}
+  if(az){g3.fillStyle='rgba(80,140,255,0.85)';g3.fillText('Z',az[0]+2,az[1]+3);}
 }
 
-// ── SKETCH — all objects live on Z=0 ────────────────────────────────────────
+// ── SKETCH DRAW (3D) ──────────────────────────────────────────────────────────
+function sketchStyle(id){
+  const sel=selectedIds.has(id);
+  g3.strokeStyle=sel?'rgba(255,170,0,0.95)':'rgba(32,232,192,0.90)';
+  g3.lineWidth=sel?2:1.4;
+}
+function drawArc3D(cx,cy,r,startA,endA,ccw,ctx=g3){
+  // Sample arc into 3D projected segments — canvas.arc() can't handle perspective
+  let span=ccw?normAngle(endA-startA):normAngle(startA-endA);
+  if(span<0.001)span=Math.PI*2;
+  const N=Math.max(16,Math.ceil(span*r/4));
+  const pts=[];
+  for(let i=0;i<=N;i++){
+    const a=ccw?startA+(i/N)*span:startA-(i/N)*span;
+    const p=project(cx+Math.cos(a)*r,cy+Math.sin(a)*r,0);
+    if(p)pts.push(p);
+  }
+  if(pts.length<2)return;
+  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.stroke();
+}
+
 function drawSketch(){
-  g3.strokeStyle='rgba(0,232,122,0.90)'; g3.lineWidth=1.4;
-  g3.lineCap='round'; g3.lineJoin='round'; g3.setLineDash([]);
-  for(const o of sketch.objects){
-    if(o.type==='line'){
-      seg(o.x1,o.y1,0, o.x2,o.y2,0);
-    } else if(o.type==='rect'){
-      seg(o.x1,o.y1,0, o.x2,o.y1,0);
-      seg(o.x2,o.y1,0, o.x2,o.y2,0);
-      seg(o.x2,o.y2,0, o.x1,o.y2,0);
-      seg(o.x1,o.y2,0, o.x1,o.y1,0);
-    } else if(o.type==='circle'){
-      const N=64, pts=[];
-      for(let i=0;i<=N;i++){
-        const a=(i/N)*Math.PI*2;
-        const p=project(o.cx+Math.cos(a)*o.r, o.cy+Math.sin(a)*o.r, 0);
-        if(p) pts.push(p);
-      }
-      if(pts.length>1){
-        g3.beginPath(); g3.moveTo(pts[0][0],pts[0][1]);
-        pts.slice(1).forEach(p=>g3.lineTo(p[0],p[1]));
-        g3.closePath(); g3.stroke();
-      }
+  g3.lineCap='round';g3.lineJoin='round';g3.setLineDash([]);
+  for(const o of Sketch.objects){
+    sketchStyle(o.id);
+    if(o.type==='LINE'){
+      seg(o.x1,o.y1,0,o.x2,o.y2,0);
+    } else if(o.type==='ARC'){
+      drawArc3D(o.cx,o.cy,o.r,o.startA,o.endA,o.ccw);
+      // Endpoint dots
+      const s=project(o.cx+Math.cos(o.startA)*o.r,o.cy+Math.sin(o.startA)*o.r,0);
+      const e=project(o.cx+Math.cos(o.endA)*o.r,o.cy+Math.sin(o.endA)*o.r,0);
+      if(s){g3.beginPath();g3.arc(s[0],s[1],2.5,0,Math.PI*2);g3.fillStyle=g3.strokeStyle;g3.fill();}
+      if(e){g3.beginPath();g3.arc(e[0],e[1],2.5,0,Math.PI*2);g3.fill();}
+    } else if(o.type==='CIRCLE'){
+      const N=64,pts=[];
+      for(let i=0;i<=N;i++){const a=(i/N)*Math.PI*2;const p=project(o.cx+Math.cos(a)*o.r,o.cy+Math.sin(a)*o.r,0);if(p)pts.push(p);}
+      if(pts.length>1){g3.beginPath();g3.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>g3.lineTo(p[0],p[1]));g3.closePath();g3.stroke();}
+    } else if(o.type==='POLYLINE'){
+      const pts=o.pts;if(pts.length<2)continue;
+      const sp=project(pts[0].x,pts[0].y,0);if(!sp)continue;
+      g3.beginPath();g3.moveTo(sp[0],sp[1]);
+      for(let i=1;i<pts.length;i++){const p=project(pts[i].x,pts[i].y,0);if(p)g3.lineTo(p[0],p[1]);}
+      if(o.closed)g3.closePath();g3.stroke();
     }
   }
 }
 
-// ── SOLIDS — extruded in +Z direction ───────────────────────────────────────
+// ── SOLIDS ────────────────────────────────────────────────────────────────────
 function solidFaces(solid){
-  const faces=[], {base,height}=solid, n=base.length;
-  // Bottom face: Z=0, normal=[0,0,-1]
-  faces.push({verts:base.map(p=>[p.x,p.y,0]), normal:[0,0,-1]});
-  // Top face: Z=height, normal=[0,0,1], reversed winding
-  faces.push({verts:[...base].reverse().map(p=>[p.x,p.y,height]), normal:[0,0,1]});
-  // Side faces (quads)
+  const faces=[],{base,height}=solid,n=base.length;
+  faces.push({verts:base.map(p=>[p.x,p.y,0]),normal:[0,0,-1]});
+  faces.push({verts:[...base].reverse().map(p=>[p.x,p.y,height]),normal:[0,0,1]});
   for(let i=0;i<n;i++){
-    const a=base[i], b=base[(i+1)%n];
-    const e1=[b.x-a.x, b.y-a.y, 0];
-    const e2=[0, 0, height];
-    faces.push({
-      verts:[[a.x,a.y,0],[b.x,b.y,0],[b.x,b.y,height],[a.x,a.y,height]],
-      normal:V.norm(V.cross(e1,e2))
-    });
+    const a=base[i],b=base[(i+1)%n];
+    faces.push({verts:[[a.x,a.y,0],[b.x,b.y,0],[b.x,b.y,height],[a.x,a.y,height]],normal:V.norm(V.cross([b.x-a.x,b.y-a.y,0],[0,0,height]))});
   }
   return faces;
 }
-
 function drawSolids(){
-  const{eye,fwd}=cam.basis();
-  const light=V.norm([0.8,0.6,1.5]); // light from front-top-right
+  const{eye,fwd}=cam.basis(),light=V.norm([0.8,0.6,1.5]);
   for(const solid of solids){
     const faces=solidFaces(solid);
-    // Painter's algorithm: sort by depth
     faces.forEach(f=>{
       const cx=f.verts.reduce((s,v)=>s+v[0],0)/f.verts.length;
       const cy=f.verts.reduce((s,v)=>s+v[1],0)/f.verts.length;
@@ -461,823 +544,654 @@ function drawSolids(){
       f.depth=V.dot([cx-eye[0],cy-eye[1],cz-eye[2]],fwd);
     });
     faces.sort((a,b)=>b.depth-a.depth);
-    const c=solid.color||[0,232,122];
+    const c=solid.color||[32,232,192];
     for(const f of faces){
-      const pts=f.verts.map(v=>project(v[0],v[1],v[2])).filter(Boolean);
-      if(pts.length<3) continue;
-      // Back-face cull (screen-space cross product)
-      const dx=pts[1][0]-pts[0][0], dy=pts[1][1]-pts[0][1];
-      const ex=pts[2][0]-pts[0][0], ey=pts[2][1]-pts[0][1];
-      if(dx*ey-dy*ex>0) continue;
-      const diff=Math.max(0.18, Math.abs(V.dot(f.normal,light)));
-      g3.fillStyle  =`rgba(${~~(c[0]*diff)},${~~(c[1]*diff)},${~~(c[2]*diff)},0.88)`;
-      g3.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},0.55)`;
-      g3.lineWidth=0.6;
-      g3.beginPath(); g3.moveTo(pts[0][0],pts[0][1]);
-      pts.slice(1).forEach(p=>g3.lineTo(p[0],p[1]));
-      g3.closePath(); g3.fill(); g3.stroke();
+      const pts=f.verts.map(v=>project(v[0],v[1],v[2])).filter(Boolean);if(pts.length<3)continue;
+      const dx=pts[1][0]-pts[0][0],dy=pts[1][1]-pts[0][1],ex=pts[2][0]-pts[0][0],ey=pts[2][1]-pts[0][1];
+      if(dx*ey-dy*ex>0)continue;
+      const diff=Math.max(0.18,Math.abs(V.dot(f.normal,light)));
+      g3.fillStyle=`rgba(${~~(c[0]*diff)},${~~(c[1]*diff)},${~~(c[2]*diff)},0.88)`;
+      g3.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},0.55)`;g3.lineWidth=0.6;
+      g3.beginPath();g3.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>g3.lineTo(p[0],p[1]));
+      g3.closePath();g3.fill();g3.stroke();
     }
   }
 }
 
-// ── NAV CUBE ────────────────────────────────────────────────────────────────
-// Orientation cube in the top-right corner.
-// Faces labeled and colored. Rotates live with the camera.
-function drawNavCube(){
-  const NX=W-64, NY=64, SZ=26;
-  const verts=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],
-               [-1,-1, 1],[1,-1, 1],[1,1, 1],[-1,1, 1]];
+// ── NAV CUBE ─────────────────────────────────────────────────────────────────
+const ISO_PHI=Math.atan(1/Math.sqrt(2));
+const EDGE_PAIRS=[[4,5],[5,6],[6,7],[7,4],[0,1],[1,2],[2,3],[3,0],[0,4],[1,5],[2,6],[3,7]];
+const EDGE_CAM=[
+  {theta:-Math.PI/2,phi:Math.PI/4,label:'FRT'},{theta:0,phi:Math.PI/4,label:'RGT'},
+  {theta:Math.PI/2,phi:Math.PI/4,label:'BKT'},{theta:Math.PI,phi:Math.PI/4,label:'LFT'},
+  {theta:-Math.PI/2,phi:-Math.PI/4,label:'FRB'},{theta:0,phi:-Math.PI/4,label:'RGB'},
+  {theta:Math.PI/2,phi:-Math.PI/4,label:'BKB'},{theta:Math.PI,phi:-Math.PI/4,label:'LFB'},
+  {theta:-3*Math.PI/4,phi:0.02,label:'FLV'},{theta:-Math.PI/4,phi:0.02,label:'FRV'},
+  {theta:Math.PI/4,phi:0.02,label:'BRV'},{theta:3*Math.PI/4,phi:0.02,label:'BLV'},
+];
+const CORNER_CAM=[
+  {theta:-3*Math.PI/4,phi:-ISO_PHI,label:'SW-B'},{theta:-Math.PI/4,phi:-ISO_PHI,label:'SE-B'},
+  {theta:Math.PI/4,phi:-ISO_PHI,label:'NE-B'},{theta:3*Math.PI/4,phi:-ISO_PHI,label:'NW-B'},
+  {theta:-3*Math.PI/4,phi:ISO_PHI,label:'SW-T'},{theta:-Math.PI/4,phi:ISO_PHI,label:'SE-T'},
+  {theta:Math.PI/4,phi:ISO_PHI,label:'NE-T'},{theta:3*Math.PI/4,phi:ISO_PHI,label:'NW-T'},
+];
+const FACE_VIEWS={
+  TOP:{theta:0,phi:Math.PI/2-0.01},BTM:{theta:0,phi:-(Math.PI/2-0.01)},
+  FRONT:{theta:-Math.PI/2,phi:0.02},BACK:{theta:Math.PI/2,phi:0.02},
+  RIGHT:{theta:0,phi:0.02},LEFT:{theta:Math.PI,phi:0.02},
+};
+let navFaceCache=[],navCornerCache=[],navEdgeCache=[],navFaceNodeCache=[];
+let navHoverFace=null,navHoverCorner=null,navHoverEdge=null;
+let navGlowState=null,navGlowTimer=null,navOrbitStart=null,_animReq=null;
+const OS=0.007,ZS=0.001;
 
+function drawNavCube(){
+  const NX=W-82,NY=76,SZ=38;
+  const verts=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
   function pv([vx,vy,vz]){
     const{fwd,right,up}=cam.basis();
-    const wx=vx*SZ, wy=vy*SZ, wz=vz*SZ;
-    const px=right[0]*wx+right[1]*wy+right[2]*wz;
-    const py=up[0]*wx   +up[1]*wy   +up[2]*wz;
-    const pz=fwd[0]*wx  +fwd[1]*wy  +fwd[2]*wz;
-    const d=86/(pz+130);
-    return[NX+px*d, NY-py*d];
+    const px=right[0]*vx*SZ+right[1]*vy*SZ+right[2]*vz*SZ;
+    const py=up[0]*vx*SZ+up[1]*vy*SZ+up[2]*vz*SZ;
+    const pz=fwd[0]*vx*SZ+fwd[1]*vy*SZ+fwd[2]*vz*SZ;
+    const d=110/(pz+160);return[NX+px*d,NY-py*d];
   }
-
-  // Labels match world-space axis: Z-up system, X=right, Y=north, Z=up.
   const faceList=[
-    {i:[0,1,2,3], label:'BTM',   col:'rgba(0,232,122,0.04)'},  // z=-1 face
-    {i:[4,5,6,7], label:'TOP',   col:'rgba(0,232,122,0.10)'},  // z=+1 face
-    {i:[0,4,7,3], label:'LEFT',  col:'rgba(0,232,122,0.06)'},  // x=-1 face
-    {i:[1,5,6,2], label:'RIGHT', col:'rgba(0,232,122,0.06)'},  // x=+1 face
-    {i:[0,1,5,4], label:'FRONT', col:'rgba(0,232,122,0.12)'},  // y=-1 face
-    {i:[3,2,6,7], label:'BACK',  col:'rgba(0,232,122,0.06)'},  // y=+1 face
+    {i:[0,1,2,3],label:'BTM',col:'rgba(32,232,192,0.04)'},{i:[4,5,6,7],label:'TOP',col:'rgba(32,232,192,0.10)'},
+    {i:[0,4,7,3],label:'LEFT',col:'rgba(32,232,192,0.06)'},{i:[1,5,6,2],label:'RIGHT',col:'rgba(32,232,192,0.06)'},
+    {i:[0,1,5,4],label:'FRONT',col:'rgba(32,232,192,0.12)'},{i:[3,2,6,7],label:'BACK',col:'rgba(32,232,192,0.06)'},
   ];
-
-  g3.save();
-  navFaceCache=[];
+  g3.save();navFaceCache=[];
   const sorted=faceList.map(f=>{
     const ps=f.i.map(i=>pv(verts[i]));
-    const cx=ps.reduce((s,p)=>s+p[0],0)/4;
-    const cy=ps.reduce((s,p)=>s+p[1],0)/4;
-    f._ps=ps; f._cx=cx; f._cy=cy;
-    const dx=ps[1][0]-ps[0][0], dy=ps[1][1]-ps[0][1];
-    const ex=ps[2][0]-ps[0][0], ey=ps[2][1]-ps[0][1];
-    f._front=dx*ey-dy*ex<0;
-    // Cache all front-facing faces for hit-testing
-    if(f._front) navFaceCache.push({label:f.label, ps});
-    return f;
+    const cx=ps.reduce((s,p)=>s+p[0],0)/4,cy=ps.reduce((s,p)=>s+p[1],0)/4;
+    f._ps=ps;f._cx=cx;f._cy=cy;
+    const dx=ps[1][0]-ps[0][0],dy=ps[1][1]-ps[0][1],ex=ps[2][0]-ps[0][0],ey=ps[2][1]-ps[0][1];
+    f._front=dx*ey-dy*ex<0;if(f._front)navFaceCache.push({label:f.label,ps});return f;
   });
-
-  // Back edges
-  [...sorted].reverse().forEach(f=>{
-    if(!f._front){
-      g3.strokeStyle='rgba(0,232,122,0.14)'; g3.lineWidth=0.5;
-      g3.beginPath(); g3.moveTo(f._ps[0][0],f._ps[0][1]);
-      f._ps.slice(1).forEach(p=>g3.lineTo(p[0],p[1]));
-      g3.closePath(); g3.stroke();
-    }
-  });
-
-  // Front faces
+  [...sorted].reverse().forEach(f=>{if(!f._front){g3.strokeStyle='rgba(32,232,192,0.14)';g3.lineWidth=0.5;g3.beginPath();g3.moveTo(f._ps[0][0],f._ps[0][1]);f._ps.slice(1).forEach(p=>g3.lineTo(p[0],p[1]));g3.closePath();g3.stroke();}});
   sorted.forEach(f=>{
-    if(!f._front) return;
-    const hovered=navHoverFace===f.label;
-    g3.fillStyle=hovered?'rgba(0,232,122,0.30)':f.col;
-    g3.strokeStyle=hovered?'rgba(0,232,122,0.80)':'rgba(0,232,122,0.40)';
-    g3.lineWidth=hovered?1.2:0.8;
-    g3.beginPath(); g3.moveTo(f._ps[0][0],f._ps[0][1]);
-    f._ps.slice(1).forEach(p=>g3.lineTo(p[0],p[1]));
-    g3.closePath(); g3.fill(); g3.stroke();
-    // Label
-    g3.fillStyle=hovered?'rgba(0,232,122,1.0)':'rgba(0,232,122,0.60)';
-    g3.font=hovered?'bold 6px Fira Code':'5.5px Fira Code';
-    g3.textAlign='center'; g3.textBaseline='middle';
-    g3.fillText(f.label, f._cx, f._cy);
+    if(!f._front)return;
+    const hov=navHoverFace===f.label;
+    g3.fillStyle=hov?'rgba(32,232,192,0.30)':f.col;g3.strokeStyle=hov?'rgba(32,232,192,0.80)':'rgba(32,232,192,0.40)';g3.lineWidth=hov?1.2:0.8;
+    g3.beginPath();g3.moveTo(f._ps[0][0],f._ps[0][1]);f._ps.slice(1).forEach(p=>g3.lineTo(p[0],p[1]));g3.closePath();g3.fill();g3.stroke();
+    g3.fillStyle=hov?'rgba(32,232,192,1.0)':'rgba(32,232,192,0.60)';g3.font=hov?'bold 9px Fira Code':'8px Fira Code';
+    g3.textAlign='center';g3.textBaseline='middle';g3.fillText(f.label,f._cx,f._cy);
   });
-  // ── Face center nodes (glow on hover, help users find clickable faces) ──
-  // Face centers in cube/world space — same system as corners/edges
-  // Face center world positions — label = world direction of that face normal.
-  const FACE_CENTERS=[
-    {pt:[0,0,+1],label:'TOP'},   {pt:[0,0,-1],label:'BTM'},
-    {pt:[-1,0,0],label:'LEFT'},  {pt:[+1,0,0],label:'RIGHT'},
-    {pt:[0,-1,0],label:'FRONT'}, {pt:[0,+1,0],label:'BACK'},
-  ];
-  // Only project front-facing face centers (same filter as navFaceCache)
+  // Face center nodes
+  const FACE_CENTERS=[{pt:[0,0,1],label:'TOP'},{pt:[0,0,-1],label:'BTM'},{pt:[-1,0,0],label:'LEFT'},{pt:[1,0,0],label:'RIGHT'},{pt:[0,-1,0],label:'FRONT'},{pt:[0,1,0],label:'BACK'}];
   const frontLabels=new Set(navFaceCache.map(f=>f.label));
-  navFaceNodeCache=FACE_CENTERS
-    .filter(f=>frontLabels.has(f.label))
-    .map(f=>({pos:pv(f.pt), label:f.label}));
+  navFaceNodeCache=FACE_CENTERS.filter(f=>frontLabels.has(f.label)).map(f=>({pos:pv(f.pt),label:f.label}));
   navFaceNodeCache.forEach(fc=>{
-    const activeHov=navHoverFace===fc.label;
-    const glowing=navGlowState&&navGlowState.type==='face'&&navGlowState.label===fc.label;
-    if(!activeHov&&!glowing) return;
-    g3.save();
-    g3.shadowColor='#00e87a'; g3.shadowBlur=activeHov?14:5;
-    g3.fillStyle=activeHov?'#00e87a':'rgba(0,232,122,0.52)';
-    g3.beginPath(); g3.arc(fc.pos[0],fc.pos[1],activeHov?5:2.5,0,Math.PI*2);
-    g3.fill(); g3.shadowBlur=0; g3.restore();
+    const ah=navHoverFace===fc.label,gl=navGlowState&&navGlowState.type==='face'&&navGlowState.label===fc.label;
+    if(!ah&&!gl)return;
+    g3.save();g3.shadowColor='#20e8c0';g3.shadowBlur=ah?18:6;g3.fillStyle=ah?'#20e8c0':'rgba(32,232,192,0.52)';
+    g3.beginPath();g3.arc(fc.pos[0],fc.pos[1],ah?6:3,0,Math.PI*2);g3.fill();g3.shadowBlur=0;g3.restore();
   });
-
-  g3.textAlign='left'; g3.textBaseline='alphabetic';
-
-  // Vertices that belong to at least one front-facing face.
-  // Corners and edges not in this set are occluded — remove from cache.
+  g3.textAlign='left';g3.textBaseline='alphabetic';
   const frontVerts=new Set(sorted.filter(f=>f._front).flatMap(f=>f.i));
-
-  // ── Corners (invisible until touched, glow briefly on hover) ────
-  navCornerCache=verts
-    .map((v,i)=>({pos:pv(v), cam:CORNER_CAM[i], idx:i}))
-    .filter(c=>frontVerts.has(c.idx));
+  navCornerCache=verts.map((v,i)=>({pos:pv(v),cam:CORNER_CAM[i],idx:i})).filter(c=>frontVerts.has(c.idx));
   navCornerCache.forEach(c=>{
-    const activeHov = navHoverCorner===c.idx;
-    const glowing   = navGlowState&&navGlowState.type==='corner'&&navGlowState.idx===c.idx;
-    if(!activeHov&&!glowing) return; // invisible when untouched
-    g3.save();
-    g3.shadowColor='#00e87a'; g3.shadowBlur=activeHov?10:4;
-    g3.fillStyle=activeHov?'#00e87a':'rgba(0,232,122,0.55)';
-    g3.beginPath(); g3.arc(c.pos[0],c.pos[1], activeHov?3.5:2, 0,Math.PI*2); g3.fill();
-    g3.shadowBlur=0; g3.restore();
-    if(activeHov){
-      g3.fillStyle='#00e87a'; g3.font='bold 6.5px Fira Code';
-      g3.textAlign='left'; g3.textBaseline='middle';
-      g3.fillText(c.cam.label, c.pos[0]+(c.pos[0]<NX?-34:7), c.pos[1]);
-    }
+    const ah=navHoverCorner===c.idx,gl=navGlowState&&navGlowState.type==='corner'&&navGlowState.idx===c.idx;
+    if(!ah&&!gl)return;
+    g3.save();g3.shadowColor='#20e8c0';g3.shadowBlur=ah?10:4;g3.fillStyle=ah?'#20e8c0':'rgba(32,232,192,0.55)';
+    g3.beginPath();g3.arc(c.pos[0],c.pos[1],ah?3.5:2,0,Math.PI*2);g3.fill();g3.shadowBlur=0;g3.restore();
+    if(ah){g3.fillStyle='#20e8c0';g3.font='bold 8px Fira Code';g3.textAlign='left';g3.textBaseline='middle';g3.fillText(c.cam.label,c.pos[0]+(c.pos[0]<NX?-34:7),c.pos[1]);}
   });
-
-  // ── Edge midpoints (invisible until touched, glow briefly on hover) ──
-  // Edge visible if at least one endpoint is on a front-facing face.
-  navEdgeCache=EDGE_PAIRS.map((pair,i)=>{
-    const pa=pv(verts[pair[0]]), pb=pv(verts[pair[1]]);
-    return{pos:[(pa[0]+pb[0])/2,(pa[1]+pb[1])/2], cam:EDGE_CAM[i], idx:i, _p:pair};
-  }).filter(e=>frontVerts.has(e._p[0])||frontVerts.has(e._p[1]));
+  navEdgeCache=EDGE_PAIRS.map((pair,i)=>{const pa=pv(verts[pair[0]]),pb=pv(verts[pair[1]]);return{pos:[(pa[0]+pb[0])/2,(pa[1]+pb[1])/2],cam:EDGE_CAM[i],idx:i,_p:pair};}).filter(e=>frontVerts.has(e._p[0])||frontVerts.has(e._p[1]));
   navEdgeCache.forEach(e=>{
-    const activeHov = navHoverEdge===e.idx;
-    const glowing   = navGlowState&&navGlowState.type==='edge'&&navGlowState.idx===e.idx;
-    if(!activeHov&&!glowing) return; // invisible when untouched
-    g3.save();
-    g3.shadowColor='#00e87a'; g3.shadowBlur=activeHov?8:3;
-    g3.fillStyle=activeHov?'#00e87a':'rgba(0,232,122,0.50)';
-    g3.beginPath(); g3.arc(e.pos[0],e.pos[1], activeHov?3:1.8, 0,Math.PI*2); g3.fill();
-    g3.shadowBlur=0; g3.restore();
-    if(activeHov){
-      g3.fillStyle='rgba(0,232,122,0.88)'; g3.font='6px Fira Code';
-      g3.textAlign='left'; g3.textBaseline='middle';
-      g3.fillText(e.cam.label, e.pos[0]+(e.pos[0]<NX?-28:5), e.pos[1]);
-    }
+    const ah=navHoverEdge===e.idx,gl=navGlowState&&navGlowState.type==='edge'&&navGlowState.idx===e.idx;
+    if(!ah&&!gl)return;
+    g3.save();g3.shadowColor='#20e8c0';g3.shadowBlur=ah?8:3;g3.fillStyle=ah?'#20e8c0':'rgba(32,232,192,0.50)';
+    g3.beginPath();g3.arc(e.pos[0],e.pos[1],ah?3:1.8,0,Math.PI*2);g3.fill();g3.shadowBlur=0;g3.restore();
+    if(ah){g3.fillStyle='rgba(32,232,192,0.88)';g3.font='7.5px Fira Code';g3.textAlign='left';g3.textBaseline='middle';g3.fillText(e.cam.label,e.pos[0]+(e.pos[0]<NX?-28:5),e.pos[1]);}
   });
-  g3.textAlign='left'; g3.textBaseline='alphabetic';
-
-  // Axis direction labels
-  const ax=pv([1.68,0,0]), ay=pv([0,1.68,0]), az=pv([0,0,1.68]);
-  [[ax,'rgba(255,80,80,0.82)','X'],[ay,'rgba(40,200,80,0.82)','Y'],[az,'rgba(80,140,255,0.82)','Z']].forEach(([p,c,lbl])=>{
-    g3.fillStyle=c; g3.font='bold 8px Fira Code';
-    g3.fillText(lbl, p[0]+3, p[1]+3);
-  });
+  g3.textAlign='left';g3.textBaseline='alphabetic';
+  const ax=pv([1.68,0,0]),ay=pv([0,1.68,0]),az=pv([0,0,1.68]);
+  [[ax,'rgba(255,80,80,0.82)','X'],[ay,'rgba(40,200,80,0.82)','Y'],[az,'rgba(80,140,255,0.82)','Z']].forEach(([p,c,lbl])=>{g3.fillStyle=c;g3.font='bold 8px Fira Code';g3.fillText(lbl,p[0]+3,p[1]+3);});
   g3.restore();
 }
 
-// ── TOOL PREVIEWS (drawn on UI canvas) ──────────────────────────────────────
+// ── TOOL STATE ────────────────────────────────────────────────────────────────
 let activeTool='select';
-let lineChain=[], lineActive=false;
-let rectP1=null, rectActive=false;
-let circleCenter=null, circleActive=false;
+let lineChain=[],lineActive=false;
+let arcState={phase:0,p1:null,p2:null};
+let rectP1=null,rectActive=false;
+let circleState={phase:0,cx:0,cy:0};
+let polyState={phase:0,cx:0,cy:0};
+let filletState={firstId:null};
+let offsetState={active:false};
 let hoverPt=null;
 
+// Resolve current input point (endpoint snap → grid snap)
+function resolvePoint(sx,sy){
+  const sp=findSnap3D(sx,sy);
+  if(sp){snapActive=true;snapPoint=sp;return sp;}
+  snapActive=false;snapPoint=null;
+  return gridSnap(screenToPlane(sx,sy));
+}
+
+// ── PREVIEW DRAWING ───────────────────────────────────────────────────────────
 function drawPreview(){
-  const mw=hoverPt; if(!mw) return;
-  gu.save(); gu.setLineDash([5,4]);
-  gu.strokeStyle='rgba(0,232,122,0.65)'; gu.lineWidth=1.3; gu.lineCap='round';
-
-  function pseg(x1,y1,z1,x2,y2,z2){
-    const a=project(x1,y1,z1), b=project(x2,y2,z2);
-    if(!a||!b) return;
-    gu.beginPath(); gu.moveTo(a[0],a[1]); gu.lineTo(b[0],b[1]); gu.stroke();
+  if(!hoverPt)return;
+  gu.save();gu.setLineDash([5,4]);
+  gu.strokeStyle='rgba(32,232,192,0.65)';gu.lineWidth=1.3;gu.lineCap='round';
+  function pseg(x1,y1,x2,y2){
+    const a=project(x1,y1,0),b=project(x2,y2,0);
+    if(!a||!b)return;gu.beginPath();gu.moveTo(a[0],a[1]);gu.lineTo(b[0],b[1]);gu.stroke();
   }
-
+  const ep=hoverPt;
   if(activeTool==='line'&&lineActive&&lineChain.length){
     const last=lineChain[lineChain.length-1];
-    pseg(last.x,last.y,0, mw.x,mw.y,0);
-    // Committed chain solid
-    gu.setLineDash([]); gu.strokeStyle='rgba(0,232,122,0.90)';
-    for(let i=1;i<lineChain.length;i++)
-      pseg(lineChain[i-1].x,lineChain[i-1].y,0, lineChain[i].x,lineChain[i].y,0);
+    pseg(last.x,last.y,ep.x,ep.y);
+    gu.setLineDash([]);gu.strokeStyle='rgba(32,232,192,0.90)';
+    for(let i=1;i<lineChain.length;i++)pseg(lineChain[i-1].x,lineChain[i-1].y,lineChain[i].x,lineChain[i].y);
+    // Close indicator
+    if(lineChain.length>=3&&Math.hypot(ep.x-lineChain[0].x,ep.y-lineChain[0].y)<snapGrid*1.5){
+      const cp=project(lineChain[0].x,lineChain[0].y,0);
+      if(cp){gu.strokeStyle='rgba(255,200,64,0.9)';gu.lineWidth=1.5;gu.beginPath();gu.arc(cp[0],cp[1],6,0,Math.PI*2);gu.stroke();}
+    }
   }
-
+  if(activeTool==='arc'){
+    if(arcState.phase===1){pseg(arcState.p1.x,arcState.p1.y,ep.x,ep.y);}
+    else if(arcState.phase===2){
+      const circ=circumscribedCircle(arcState.p1,arcState.p2,ep);
+      if(circ){
+        const{cx,cy,r}=circ;
+        const startA=Math.atan2(arcState.p1.y-cy,arcState.p1.x-cx);
+        const midA=Math.atan2(arcState.p2.y-cy,arcState.p2.x-cx);
+        const endA=Math.atan2(ep.y-cy,ep.x-cx);
+        const ccw=angleOnArc(normAngle(midA),normAngle(startA),normAngle(endA),true);
+        gu.strokeStyle='rgba(32,232,192,0.70)';
+        drawArc3D(cx,cy,r,startA,endA,ccw,gu);
+        const sp1=project(arcState.p1.x,arcState.p1.y,0),sp2=project(arcState.p2.x,arcState.p2.y,0);
+        [sp1,sp2].forEach(p=>{if(p){gu.fillStyle='rgba(32,232,192,0.8)';gu.beginPath();gu.arc(p[0],p[1],3,0,Math.PI*2);gu.fill();}});
+      }
+    }
+  }
   if(activeTool==='rect'&&rectActive&&rectP1){
-    const{x1,y1}=rectP1;
-    pseg(x1,y1,0, mw.x,y1,0); pseg(mw.x,y1,0, mw.x,mw.y,0);
-    pseg(mw.x,mw.y,0, x1,mw.y,0); pseg(x1,mw.y,0, x1,y1,0);
+    pseg(rectP1.x,rectP1.y,ep.x,rectP1.y);pseg(ep.x,rectP1.y,ep.x,ep.y);
+    pseg(ep.x,ep.y,rectP1.x,ep.y);pseg(rectP1.x,ep.y,rectP1.x,rectP1.y);
   }
+  if(activeTool==='circle'){
+    if(circleState.phase===1){
+      const r=Math.hypot(ep.x-circleState.cx,ep.y-circleState.cy);
+      if(r>0.1){const N=64;const pts=[];for(let i=0;i<=N;i++){const a=(i/N)*Math.PI*2;const p=project(circleState.cx+Math.cos(a)*r,circleState.cy+Math.sin(a)*r,0);if(p)pts.push(p);}
+      if(pts.length>1){gu.setLineDash([5,4]);gu.beginPath();gu.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>gu.lineTo(p[0],p[1]));gu.closePath();gu.stroke();}}
+    }
+  }
+  if(activeTool==='polygon'&&polyState.phase===1){
+    const n=parseInt(document.getElementById('poly-sides').value)||6;
+    const r=Math.hypot(ep.x-polyState.cx,ep.y-polyState.cy);
+    if(r>0.1){
+      const startA=Math.atan2(ep.y-polyState.cy,ep.x-polyState.cx);
+      const pts=[];for(let i=0;i<=n;i++){const a=startA+i*(2*Math.PI/n);const p=project(polyState.cx+Math.cos(a)*r,polyState.cy+Math.sin(a)*r,0);if(p)pts.push(p);}
+      gu.setLineDash([5,4]);gu.beginPath();gu.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>gu.lineTo(p[0],p[1]));gu.stroke();
+    }
+  }
+  gu.setLineDash([]);gu.restore();
+}
 
-  if(activeTool==='circle'&&circleActive&&circleCenter){
-    const r=Math.hypot(mw.x-circleCenter.x, mw.y-circleCenter.y);
-    const pts=[]; const N=64;
-    for(let i=0;i<=N;i++){
-      const a=(i/N)*Math.PI*2;
-      const p=project(circleCenter.x+Math.cos(a)*r, circleCenter.y+Math.sin(a)*r, 0);
-      if(p) pts.push(p);
-    }
-    if(pts.length>1){
-      gu.beginPath(); gu.moveTo(pts[0][0],pts[0][1]);
-      pts.slice(1).forEach(p=>gu.lineTo(p[0],p[1]));
-      gu.closePath(); gu.stroke();
-    }
+function drawSnapIndicator(){
+  if(snapActive&&snapPoint){
+    const sp=project(snapPoint.x,snapPoint.y,0);if(!sp)return;
+    gu.save();gu.strokeStyle='rgba(255,220,60,0.9)';gu.lineWidth=1.2;
+    gu.beginPath();gu.arc(sp[0],sp[1],7,0,Math.PI*2);gu.stroke();
+    gu.strokeStyle='rgba(255,220,60,0.6)';gu.lineWidth=0.7;
+    gu.beginPath();gu.moveTo(sp[0]-11,sp[1]);gu.lineTo(sp[0]+11,sp[1]);gu.moveTo(sp[0],sp[1]-11);gu.lineTo(sp[0],sp[1]+11);gu.stroke();
+    gu.restore();
   }
-  gu.restore();
 }
 
 function drawCursor(){
-  if(!hoverPt) return;
-  const p=project(hoverPt.x, hoverPt.y, 0); if(!p) return;
-  gu.save();
-  gu.strokeStyle='rgba(0,232,122,0.90)'; gu.lineWidth=1;
-  gu.beginPath();
-  gu.moveTo(p[0]-8,p[1]); gu.lineTo(p[0]+8,p[1]);
-  gu.moveTo(p[0],p[1]-8); gu.lineTo(p[0],p[1]+8);
-  gu.stroke();
-  gu.strokeStyle='rgba(0,232,122,0.35)'; gu.lineWidth=0.7;
-  gu.beginPath(); gu.arc(p[0],p[1],4,0,Math.PI*2); gu.stroke();
-  gu.restore();
+  if(!hoverPt||snapActive)return;
+  const p=project(hoverPt.x,hoverPt.y,0);if(!p)return;
+  gu.save();gu.strokeStyle='rgba(32,232,192,0.90)';gu.lineWidth=1;
+  gu.beginPath();gu.moveTo(p[0]-8,p[1]);gu.lineTo(p[0]+8,p[1]);gu.moveTo(p[0],p[1]-8);gu.lineTo(p[0],p[1]+8);gu.stroke();
+  gu.strokeStyle='rgba(32,232,192,0.35)';gu.lineWidth=0.7;
+  gu.beginPath();gu.arc(p[0],p[1],4,0,Math.PI*2);gu.stroke();gu.restore();
 }
 
-// ── TOOLS ───────────────────────────────────────────────────────────────────
+// ── TOOLS ────────────────────────────────────────────────────────────────────
 function setTool(t){
   activeTool=t;
-  lineChain=[]; lineActive=false;
-  rectP1=null; rectActive=false;
-  circleCenter=null; circleActive=false;
+  lineChain=[];lineActive=false;arcState={phase:0,p1:null,p2:null};
+  rectP1=null;rectActive=false;circleState={phase:0,cx:0,cy:0};
+  polyState={phase:0,cx:0,cy:0};filletState={firstId:null};offsetState={active:false};
+  selectedIds.clear();
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-  const b=document.getElementById('btn-'+t); if(b) b.classList.add('active');
+  const b=document.getElementById('btn-'+t);if(b)b.classList.add('active');
   document.getElementById('st-tool').textContent=t.toUpperCase();
   cu.style.cursor=t==='select'?'default':'crosshair';
+  // Show/hide modifier rows
+  document.getElementById('fillet-row').style.display=t==='fillet'?'flex':'flex';
+  document.getElementById('offset-row').style.display=t==='offset'?'flex':'none';
+  document.getElementById('poly-row').style.display=t==='polygon'?'flex':'none';
   render();
 }
 
-// ── EXTRUDE ─────────────────────────────────────────────────────────────────
+// ── EXTRUDE ───────────────────────────────────────────────────────────────────
 function findLoops(){
   const loops=[];
-  for(const o of sketch.objects){
-    if(o.type==='rect')
-      loops.push([{x:o.x1,y:o.y1},{x:o.x2,y:o.y1},{x:o.x2,y:o.y2},{x:o.x1,y:o.y2}]);
-    else if(o.type==='circle'){
-      const N=48, pts=[];
-      for(let i=0;i<N;i++){const a=(i/N)*Math.PI*2;
-        pts.push({x:o.cx+Math.cos(a)*o.r, y:o.cy+Math.sin(a)*o.r});}
+  for(const o of Sketch.objects){
+    if(o.type==='CIRCLE'){
+      const N=48,pts=[];for(let i=0;i<N;i++){const a=(i/N)*Math.PI*2;pts.push({x:o.cx+Math.cos(a)*o.r,y:o.cy+Math.sin(a)*o.r});}
       loops.push(pts);
+    } else if(o.type==='POLYLINE'&&o.closed){
+      loops.push(o.pts);
     }
   }
-  // Line-graph closed loop detection
-  const lines=sketch.objects.filter(o=>o.type==='line');
+  // Line graph closed loop detection
+  const lines=Sketch.objects.filter(o=>o.type==='LINE');
   if(lines.length>=3){
-    const G=1, key=(x,y)=>`${Math.round(x/G)},${Math.round(y/G)}`;
-    const adj={};
+    const G=0.5,key=(x,y)=>`${Math.round(x/G)},${Math.round(y/G)}`,adj={};
     for(const l of lines){
-      const k1=key(l.x1,l.y1), k2=key(l.x2,l.y2);
-      if(!adj[k1]) adj[k1]={x:l.x1,y:l.y1,n:[]};
-      if(!adj[k2]) adj[k2]={x:l.x2,y:l.y2,n:[]};
-      adj[k1].n.push(k2); adj[k2].n.push(k1);
+      const k1=key(l.x1,l.y1),k2=key(l.x2,l.y2);
+      if(!adj[k1])adj[k1]={x:l.x1,y:l.y1,n:[]};if(!adj[k2])adj[k2]={x:l.x2,y:l.y2,n:[]};
+      adj[k1].n.push(k2);adj[k2].n.push(k1);
     }
     if(Object.values(adj).every(p=>p.n.length===2)){
-      const keys=Object.keys(adj), vis=new Set();
-      let cur=keys[0], prev=null; const loop=[];
-      while(!vis.has(cur)){vis.add(cur);loop.push(adj[cur]);
-        const nxt=adj[cur].n.find(n=>n!==prev)||adj[cur].n[0];prev=cur;cur=nxt;}
-      if(loop.length>=3) loops.push(loop);
+      const keys=Object.keys(adj),vis=new Set();let cur=keys[0],prev=null;const loop=[];
+      while(!vis.has(cur)){vis.add(cur);loop.push(adj[cur]);const nxt=adj[cur].n.find(n=>n!==prev)||adj[cur].n[0];prev=cur;cur=nxt;}
+      if(loop.length>=3)loops.push(loop);
     }
   }
   return loops;
 }
-
 function doExtrude(h){
-  h=parseFloat(h);
-  if(!h||isNaN(h)||h===0) return toast('Enter a height in mm');
-  const loops=findLoops();
-  if(!loops.length) return toast('No closed shape — draw Rect or Circle, or close a Line loop');
+  h=parseFloat(h);if(!h||isNaN(h)||h===0)return toast('Enter a height');
+  const loops=findLoops();if(!loops.length)return toast('No closed shape — draw Rect, Circle, close Lines, or closed Polyline');
   pushUndo();
-  for(const loop of loops)
-    solids.push({base:loop.map(p=>({x:p.x,y:p.y})), height:h, color:[0,232,122]});
-  refreshUI(); render();
-  toast(`Extruded ${loops.length} loop${loops.length>1?'s':''} · ${h}mm`);
+  for(const loop of loops)solids.push({base:loop.map(p=>({x:p.x,y:p.y})),height:h,color:[32,232,192]});
+  refreshUI();render();toast(`Extruded ${loops.length} loop${loops.length>1?'s':''} · ${h}${unitMode}`);
 }
 
-// ── VIEW PRESETS ─────────────────────────────────────────────────────────────
+// ── FILLET (from KAD) ────────────────────────────────────────────────────────
+function commitFillet(l1,l2){
+  const r=parseFloat(document.getElementById('fillet-r').value)||5;
+  if(r<=0)return toast('Enter fillet radius > 0');
+  const inter=lineIntersectPt(l1,l2);if(!inter)return toast('Lines are parallel');
+  const len1=Math.hypot(l1.x2-l1.x1,l1.y2-l1.y1),len2=Math.hypot(l2.x2-l2.x1,l2.y2-l2.y1);
+  if(len1<1e-10||len2<1e-10)return toast('Degenerate line');
+  const iv=inter;
+  let u1x=(l1.x1+l1.x2)/2-iv.x,u1y=(l1.y1+l1.y2)/2-iv.y;
+  let u2x=(l2.x1+l2.x2)/2-iv.x,u2y=(l2.y1+l2.y2)/2-iv.y;
+  const ul1=Math.hypot(u1x,u1y)||1;u1x/=ul1;u1y/=ul1;
+  const ul2=Math.hypot(u2x,u2y)||1;u2x/=ul2;u2y/=ul2;
+  const bx_=u1x+u2x,by_=u1y+u2y,bl=Math.hypot(bx_,by_);
+  if(bl<1e-10)return toast('Cannot compute bisector');
+  const bnx=bx_/bl,bny=by_/bl;
+  const halfAngle=Math.acos(Math.max(-1,Math.min(1,u1x*u2x+u1y*u2y)))/2;
+  if(Math.abs(halfAngle)<1e-6)return toast('Lines are collinear');
+  const dist=r/Math.sin(halfAngle);
+  const fcx=iv.x+bnx*dist,fcy=iv.y+bny*dist;
+  const tp1d=u1x*(fcx-iv.x)+u1y*(fcy-iv.y),tp1={x:iv.x+u1x*tp1d,y:iv.y+u1y*tp1d};
+  const tp2d=u2x*(fcx-iv.x)+u2y*(fcy-iv.y),tp2={x:iv.x+u2x*tp2d,y:iv.y+u2y*tp2d};
+  const startA=Math.atan2(tp1.y-fcy,tp1.x-fcx),endA=Math.atan2(tp2.y-fcy,tp2.x-fcx);
+  const midAng=(startA+endA)/2;
+  const testPt={x:fcx+r*Math.cos(midAng),y:fcy+r*Math.sin(midAng)};
+  const ccw=Math.hypot(testPt.x-iv.x,testPt.y-iv.y)<dist;
+  const l1ks=Math.hypot(l1.x1-iv.x,l1.y1-iv.y)>Math.hypot(l1.x2-iv.x,l1.y2-iv.y);
+  const l1a=l1ks?{x:l1.x1,y:l1.y1}:{x:l1.x2,y:l1.y2};
+  const l2ks=Math.hypot(l2.x1-iv.x,l2.y1-iv.y)>Math.hypot(l2.x2-iv.x,l2.y2-iv.y);
+  const l2a=l2ks?{x:l2.x1,y:l2.y1}:{x:l2.x2,y:l2.y2};
+  pushUndo();
+  Sketch.remove(l1.id);Sketch.remove(l2.id);
+  Sketch.addLine(l1a.x,l1a.y,tp1.x,tp1.y);
+  Sketch.addLine(l2a.x,l2a.y,tp2.x,tp2.y);
+  Sketch.addArc(fcx,fcy,r,startA,endA,ccw);
+  refreshUI();render();toast(`Fillet r=${r}${unitMode}`);
+  filletState={firstId:null};
+}
+
+// ── OFFSET ───────────────────────────────────────────────────────────────────
+function commitOffset(obj){
+  const d=parseFloat(document.getElementById('offset-d').value)||5;
+  pushUndo();
+  if(obj.type==='LINE'){
+    const dx=obj.x2-obj.x1,dy=obj.y2-obj.y1,len=Math.hypot(dx,dy)||1;
+    const nx=-dy/len*d,ny=dx/len*d;
+    Sketch.addLine(obj.x1+nx,obj.y1+ny,obj.x2+nx,obj.y2+ny);
+  } else if(obj.type==='CIRCLE'){
+    Sketch.addCircle(obj.cx,obj.cy,obj.r+d);
+  } else if(obj.type==='POLYLINE'&&obj.pts.length>=2){
+    const pts=obj.pts.map((p,i)=>{
+      const prev=i>0?obj.pts[i-1]:obj.pts[i+1];
+      const next=i<obj.pts.length-1?obj.pts[i+1]:obj.pts[i-1];
+      const dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1;
+      return{x:p.x+(-dy/len)*d,y:p.y+(dx/len)*d};
+    });
+    Sketch.addPolyline(pts,obj.closed);
+  }
+  refreshUI();render();toast(`Offset ${d}${unitMode}`);
+}
+
+// ── VIEW PRESETS ──────────────────────────────────────────────────────────────
 function setView(v){
-  const P={
-    iso:  {theta: Math.PI/4,        phi: ISO_PHI},         // NE-T standard iso
-    top:  {theta: 0,                phi: Math.PI/2-0.01},  // from +Z
-    front:{theta:-Math.PI/2,        phi: 0.02},            // from -Y
-    right:{theta: 0,                phi: 0.02},            // from +X
-    left: {theta: Math.PI,          phi: 0.02},            // from -X
-    back: {theta: Math.PI/2,        phi: 0.02},            // from +Y
-    btm:  {theta: 0,                phi:-(Math.PI/2-0.01)},// from -Z
-  };
-  if(P[v]){cam.theta=P[v].theta; cam.phi=P[v].phi;}
-  render();
+  const P={iso:{theta:Math.PI/4,phi:ISO_PHI},top:{theta:0,phi:Math.PI/2-0.01},
+    front:{theta:-Math.PI/2,phi:0.02},right:{theta:0,phi:0.02},
+    left:{theta:Math.PI,phi:0.02},back:{theta:Math.PI/2,phi:0.02},btm:{theta:0,phi:-(Math.PI/2-0.01)}};
+  if(P[v]){cam.theta=P[v].theta;cam.phi=P[v].phi;}render();
 }
-
 function frameScene(){
   const pts=[];
-  sketch.objects.forEach(o=>{
-    if(o.type==='line')   pts.push([o.x1,o.y1],[o.x2,o.y2]);
-    if(o.type==='rect')   pts.push([o.x1,o.y1],[o.x2,o.y2]);
-    if(o.type==='circle') pts.push([o.cx+o.r,o.cy],[o.cx-o.r,o.cy]);
+  Sketch.objects.forEach(o=>{
+    if(o.type==='LINE')pts.push([o.x1,o.y1],[o.x2,o.y2]);
+    if(o.type==='POLYLINE')o.pts.forEach(p=>pts.push([p.x,p.y]));
+    if(o.type==='CIRCLE'||o.type==='ARC')pts.push([o.cx+o.r,o.cy],[o.cx-o.r,o.cy],[o.cx,o.cy+o.r],[o.cx,o.cy-o.r]);
   });
   solids.forEach(s=>s.base.forEach(p=>pts.push([p.x,p.y])));
   if(!pts.length){cam.radius=380;cam.target=[0,0,0];render();return;}
-  const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
   cam.target=[(Math.min(...xs)+Math.max(...xs))/2,(Math.min(...ys)+Math.max(...ys))/2,0];
-  cam.radius=Math.max(60,Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys))*1.7);
-  render();
+  cam.radius=Math.max(60,Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys))*1.7);render();
 }
 
-// ── MOUSE & TOUCH EVENTS ─────────────────────────────────────────────────────
-let orbitStart=null, panStart=null;
-// True isometric elevation: arctan(1/√2) ≈ 35.26°
-const ISO_PHI=Math.atan(1/Math.sqrt(2));
+// ── MOUSE INPUT ───────────────────────────────────────────────────────────────
+let orbitStart=null,panStart=null;
 
-// Camera angles for each nav cube corner vertex (cube X=world X, Y=world Y, Z=world Z).
-// Vertex order matches the verts array in drawNavCube: [±1,±1,±1]
-const EDGE_PAIRS=[[4,5],[5,6],[6,7],[7,4],[0,1],[1,2],[2,3],[3,0],[0,4],[1,5],[2,6],[3,7]];
-// phi=π/4 for top-ring edges, -π/4 for bottom-ring, 0 for vertical edges
-const EDGE_CAM=[
-  {theta:-Math.PI/2,      phi: Math.PI/4, label:'FRT'}, // front-top
-  {theta: 0,              phi: Math.PI/4, label:'RGT'}, // right-top
-  {theta: Math.PI/2,      phi: Math.PI/4, label:'BKT'}, // back-top
-  {theta: Math.PI,        phi: Math.PI/4, label:'LFT'}, // left-top
-  {theta:-Math.PI/2,      phi:-Math.PI/4, label:'FRB'}, // front-bottom
-  {theta: 0,              phi:-Math.PI/4, label:'RGB'}, // right-bottom
-  {theta: Math.PI/2,      phi:-Math.PI/4, label:'BKB'}, // back-bottom
-  {theta: Math.PI,        phi:-Math.PI/4, label:'LFB'}, // left-bottom
-  {theta:-3*Math.PI/4,    phi: 0.02,      label:'FLV'}, // front-left vert
-  {theta:-Math.PI/4,      phi: 0.02,      label:'FRV'}, // front-right vert
-  {theta: Math.PI/4,      phi: 0.02,      label:'BRV'}, // back-right vert
-  {theta: 3*Math.PI/4,    phi: 0.02,      label:'BLV'}, // back-left vert
-];
+function isInNavCube(mx,my){return Math.hypot(mx-(W-82),my-76)<78;}
+function ptInPoly(px,py,pts){let inside=false;const n=pts.length;for(let i=0,j=n-1;i<n;j=i++){const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))inside=!inside;}return inside;}
+function hitNavEdge(mx,my){let best=null,bd=14;for(const e of navEdgeCache){const d=Math.hypot(mx-e.pos[0],my-e.pos[1]);if(d<bd){bd=d;best=e.idx;}}return best;}
+function hitNavCorner(mx,my){let best=null,bd=8;for(const c of navCornerCache){const d=Math.hypot(mx-c.pos[0],my-c.pos[1]);if(d<bd){bd=d;best=c.idx;}}return best;}
+function hitNavFaceNode(mx,my){let best=null,bd=22;for(const fc of navFaceNodeCache){const d=Math.hypot(mx-fc.pos[0],my-fc.pos[1]);if(d<bd){bd=d;best=fc.label;}}return best;}
+function hitNavFacePoly(mx,my){for(const f of navFaceCache)if(ptInPoly(mx,my,f.ps))return f.label;return null;}
 
-const CORNER_CAM=[
-  {theta:-3*Math.PI/4, phi:-ISO_PHI, label:'SW-B'}, // 0:[-1,-1,-1]
-  {theta: -Math.PI/4,  phi:-ISO_PHI, label:'SE-B'}, // 1:[+1,-1,-1]
-  {theta:  Math.PI/4,  phi:-ISO_PHI, label:'NE-B'}, // 2:[+1,+1,-1]
-  {theta: 3*Math.PI/4, phi:-ISO_PHI, label:'NW-B'}, // 3:[-1,+1,-1]
-  {theta:-3*Math.PI/4, phi: ISO_PHI, label:'SW-T'}, // 4:[-1,-1,+1]
-  {theta: -Math.PI/4,  phi: ISO_PHI, label:'SE-T'}, // 5:[+1,-1,+1]
-  {theta:  Math.PI/4,  phi: ISO_PHI, label:'NE-T'}, // 6:[+1,+1,+1] std iso
-  {theta: 3*Math.PI/4, phi: ISO_PHI, label:'NW-T'}, // 7:[-1,+1,+1]
-];
-
-// Nav cube interaction
-let navFaceCache=[];       // projected face data from last drawNavCube()
-let navCornerCache=[];     // projected corner positions {pos,cam,idx}
-let navEdgeCache=[];       // projected edge midpoint positions {pos,cam,idx}
-let navFaceNodeCache=[];   // projected face-center positions {pos,label}
-let navHoverFace=null;     // label of currently hovered face
-let navHoverCorner=null;   // index of hovered corner (0-7), or null
-let navHoverEdge=null;     // index of hovered edge (0-11), or null
-let navGlowState=null;     // {type:'corner'|'edge', idx} — currently glowing
-let navGlowTimer=null;     // timeout handle for glow fade-out
-let navOrbitStart=null;    // for drag-orbit on nav cube
-let _animReq=null;         // requestAnimationFrame handle
-const OS=0.007, ZS=0.001;
-
-
-// ── NAV CUBE INTERACTION ─────────────────────────────────────────────────────
-
-// Is (mx,my) within the nav cube clickable region?
-function isInNavCube(mx,my){
-  return Math.hypot(mx-(W-64), my-64) < 58;
-}
-
-// Point-in-polygon for 2D quad
-function ptInPoly(px,py,pts){
-  let inside=false;
-  const n=pts.length;
-  for(let i=0,j=n-1;i<n;j=i++){
-    const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];
-    if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))
-      inside=!inside;
-  }
-  return inside;
-}
-
-// Which edge midpoint (0-11) is within click radius? Returns null if none.
-function hitNavEdge(mx,my){
-  let best=null, bd=12; // medium radius — easier than corner
-  for(const e of navEdgeCache){
-    const d=Math.hypot(mx-e.pos[0],my-e.pos[1]);
-    if(d<bd){bd=d;best=e.idx;}
-  }
-  return best;
-}
-
-// Which nav cube corner (0-7) is at (mx,my)? Returns null if none.
-function hitNavCorner(mx,my){
-  let best=null, bd=7; // tightest radius — hardest to hit
-  for(const c of navCornerCache){
-    const d=Math.hypot(mx-c.pos[0],my-c.pos[1]);
-    if(d<bd){bd=d;best=c.idx;}
-  }
-  return best;
-}
-
-// Face center node — 20px radius, checked BEFORE edges/corners.
-function hitNavFaceNode(mx,my){
-  let best=null, bd=20;
-  for(const fc of navFaceNodeCache){
-    const d=Math.hypot(mx-fc.pos[0],my-fc.pos[1]);
-    if(d<bd){bd=d;best=fc.label;}
-  }
-  return best;
-}
-
-// Face polygon fallback — runs LAST, after all node checks.
-function hitNavFacePoly(mx,my){
-  for(const f of navFaceCache)
-    if(ptInPoly(mx,my,f.ps)) return f.label;
-  return null;
-}
-
-// Combined: node first, then polygon (for hover tracking).
-function hitNavFace(mx,my){
-  return hitNavFaceNode(mx,my) || hitNavFacePoly(mx,my) || null;
-}
-
-// Camera view angles per face label.
-// Z-up camera: eye = [r*cos(phi)*cos(theta), r*cos(phi)*sin(theta), r*sin(phi)]
-const FACE_VIEWS={
-  TOP:  {theta:0,            phi: Math.PI/2-0.01},  // from +Z, looking down
-  BTM:  {theta:0,            phi:-(Math.PI/2-0.01)}, // from -Z, looking up
-  FRONT:{theta:-Math.PI/2,   phi: 0.02},             // from -Y, looking toward +Y
-  BACK: {theta: Math.PI/2,   phi: 0.02},             // from +Y, looking toward -Y
-  RIGHT:{theta: 0,           phi: 0.02},             // from +X, looking toward -X
-  LEFT: {theta: Math.PI,     phi: 0.02},             // from -X, looking toward +X
-};
-
-// Smooth camera animation
-function animateCam(toTheta, toPhi, dur=320){
-  if(_animReq) cancelAnimationFrame(_animReq);
-  const fromTheta=cam.theta, fromPhi=cam.phi;
-  // Shortest angular path for theta
+function animateCam(toTheta,toPhi,dur=320){
+  if(_animReq)cancelAnimationFrame(_animReq);
+  const fromTheta=cam.theta,fromPhi=cam.phi;
   let dTheta=((toTheta-fromTheta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;
   const t0=performance.now();
-  function step(now){
-    const t=Math.min(1,(now-t0)/dur);
-    const e=t<0.5?2*t*t:-1+(4-2*t)*t; // ease in-out quad
-    cam.theta=fromTheta+dTheta*e;
-    cam.phi  =fromPhi  +(toPhi-fromPhi)*e;
-    render();
-    if(t<1) _animReq=requestAnimationFrame(step);
-    else{ cam.theta=fromTheta+dTheta; cam.phi=toPhi; _animReq=null; }
-  }
+  function step(now){const t=Math.min(1,(now-t0)/dur),e=t<0.5?2*t*t:-1+(4-2*t)*t;cam.theta=fromTheta+dTheta*e;cam.phi=fromPhi+(toPhi-fromPhi)*e;render();if(t<1)_animReq=requestAnimationFrame(step);else{cam.theta=fromTheta+dTheta;cam.phi=toPhi;_animReq=null;}}
   _animReq=requestAnimationFrame(step);
 }
+function snapToFace(label){const v=FACE_VIEWS[label];if(!v)return;animateCam(v.theta,v.phi);toast(label+' VIEW');}
 
-// Snap to a named face view
-function snapToFace(label){
-  const v=FACE_VIEWS[label]; if(!v) return;
-  animateCam(v.theta, v.phi);
-  toast(label+' VIEW');
+// Hit-test sketch objects for select/fillet/offset
+function hitSketchObj(sx,sy,thresh=18){
+  let best=null,bd=thresh;
+  for(const o of Sketch.objects){
+    const wp=screenToPlane(sx,sy);if(!wp)continue;
+    if(o.type==='LINE'){
+      const a=project(o.x1,o.y1,0),b=project(o.x2,o.y2,0);if(!a||!b)continue;
+      const d=ptSegDist2([sx,sy],a,b);if(d<bd){bd=d;best=o;}
+    } else if(o.type==='ARC'){
+      const cp=project(o.cx+Math.cos(o.startA)*o.r,o.cy+Math.sin(o.startA)*o.r,0);
+      const r_mid=Math.hypot(wp.x-o.cx,wp.y-o.cy);
+      if(Math.abs(r_mid-o.r)*2<thresh&&bd>8){bd=8;best=o;}
+    } else if(o.type==='CIRCLE'){
+      const cp=project(o.cx,o.cy,0);if(!cp)continue;
+      const r_mid=Math.hypot(wp.x-o.cx,wp.y-o.cy);
+      if(Math.abs(r_mid-o.r)*2<thresh&&bd>8){bd=8;best=o;}
+    } else if(o.type==='POLYLINE'){
+      const pts=o.pts;
+      for(let i=0;i<pts.length-1;i++){
+        const a=project(pts[i].x,pts[i].y,0),b=project(pts[i+1].x,pts[i+1].y,0);
+        if(!a||!b)continue;const d=ptSegDist2([sx,sy],a,b);if(d<bd){bd=d;best=o;}
+      }
+    }
+  }
+  return best;
+}
+function ptSegDist2(p,a,b){
+  const dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;
+  if(l2<1)return Math.hypot(p[0]-a[0],p[1]-a[1]);
+  const t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l2));
+  return Math.hypot(p[0]-(a[0]+t*dx),p[1]-(a[1]+t*dy));
 }
 
 cu.addEventListener('mousedown',e=>{
-  const _rect0=cu.getBoundingClientRect();
-  const _mx=e.clientX-_rect0.left, _my=e.clientY-_rect0.top;
+  const r0=cu.getBoundingClientRect(),mx=e.clientX-r0.left,my=e.clientY-r0.top;
 
-  // ── Nav cube: left-click snaps view, drag orbits ──────────────
-  if(e.button===0 && isInNavCube(_mx,_my)){
-    // Priority: face center (20px) → edge (12px) → corner (7px) → face polygon
-    // Face center always wins — fat finger on a face beats nearby edge/corner.
-    const faceNode=hitNavFaceNode(_mx,_my);
-    if(faceNode){ snapToFace(faceNode); return; }
-    const edge=hitNavEdge(_mx,_my);
-    if(edge!==null){
-      const ev=EDGE_CAM[edge];
-      animateCam(ev.theta,ev.phi);
-      toast(ev.label+' EDGE'); return;
-    }
-    const corner=hitNavCorner(_mx,_my);
-    if(corner!==null){
-      const cv=CORNER_CAM[corner];
-      animateCam(cv.theta,cv.phi);
-      toast(cv.label+' ISO'); return;
-    }
-    const face=hitNavFacePoly(_mx,_my);
-    if(face){ snapToFace(face); return; }
-    // Drag on cube body → orbit
-    navOrbitStart={x:e.clientX,y:e.clientY,th:cam.theta,ph:cam.phi};
-    e.preventDefault(); return;
+  // ── Nav cube — PRIORITY: face-center > face-polygon > edge > corner ──
+  if(e.button===0&&isInNavCube(mx,my)){
+    const fn=hitNavFaceNode(mx,my);
+    if(fn){snapToFace(fn);return;}
+    const fa=hitNavFacePoly(mx,my);       // face polygon BEFORE edge/corner
+    if(fa){snapToFace(fa);return;}
+    const ed=hitNavEdge(mx,my);
+    if(ed!==null){const ev=EDGE_CAM[ed];animateCam(ev.theta,ev.phi);toast(ev.label+' EDGE');return;}
+    const co=hitNavCorner(mx,my);
+    if(co!==null){const cv=CORNER_CAM[co];animateCam(cv.theta,cv.phi);toast(cv.label+' ISO');return;}
+    navOrbitStart={x:e.clientX,y:e.clientY,th:cam.theta,ph:cam.phi};e.preventDefault();return;
   }
 
-  if(e.button===2){
-    orbitStart={x:e.clientX,y:e.clientY,th:cam.theta,ph:cam.phi};
-    e.preventDefault(); return;
-  }
-  if(e.button===1){
-    panStart={x:e.clientX,y:e.clientY,tgt:[...cam.target]};
-    e.preventDefault(); return;
-  }
+  if(e.button===2){orbitStart={x:e.clientX,y:e.clientY,th:cam.theta,ph:cam.phi};e.preventDefault();return;}
+  if(e.button===1){panStart={x:e.clientX,y:e.clientY,tgt:[...cam.target]};e.preventDefault();return;}
+  if(e.button!==0)return;
 
   const rect=cu.getBoundingClientRect();
-  const pt=snapped(screenToPlane(e.clientX-rect.left, e.clientY-rect.top));
-  if(!pt) return;
-
+  const sx=e.clientX-rect.left,sy=e.clientY-rect.top;
+  const pt=resolvePoint(sx,sy);if(!pt&&activeTool!=='fillet'&&activeTool!=='offset'&&activeTool!=='select')return;
   const t=activeTool;
 
   if(t==='line'){
-    if(!lineActive){lineActive=true; lineChain=[{x:pt.x,y:pt.y}];}
+    if(!lineActive){lineActive=true;lineChain=[{x:pt.x,y:pt.y}];}
     else{
       const f=lineChain[0];
-      if(lineChain.length>=2 && Math.hypot(pt.x-f.x,pt.y-f.y)<snapGrid*1.5){
-        // Close loop
+      if(lineChain.length>=3&&Math.hypot(pt.x-f.x,pt.y-f.y)<snapGrid*1.5){
         pushUndo();
-        for(let i=0;i<lineChain.length-1;i++)
-          sketch.objects.push({type:'line',x1:lineChain[i].x,y1:lineChain[i].y,
-            x2:lineChain[i+1].x,y2:lineChain[i+1].y});
-        sketch.objects.push({type:'line',x1:lineChain[lineChain.length-1].x,y1:lineChain[lineChain.length-1].y,
-          x2:f.x,y2:f.y});
-        lineChain=[]; lineActive=false; refreshUI(); render(); toast('Loop closed');
-        return;
+        for(let i=0;i<lineChain.length-1;i++)Sketch.addLine(lineChain[i].x,lineChain[i].y,lineChain[i+1].x,lineChain[i+1].y);
+        Sketch.addLine(lineChain[lineChain.length-1].x,lineChain[lineChain.length-1].y,f.x,f.y);
+        lineChain=[];lineActive=false;refreshUI();render();toast('Loop closed');return;
       }
       lineChain.push({x:pt.x,y:pt.y});
     }
     render();
-  }
-
-  else if(t==='rect'){
-    if(!rectActive){rectActive=true; rectP1={x1:pt.x,y1:pt.y};}
+  } else if(t==='arc'){
+    if(arcState.phase===0){arcState.phase=1;arcState.p1=pt;}
+    else if(arcState.phase===1){arcState.phase=2;arcState.p2=pt;}
+    else if(arcState.phase===2){
+      const circ=circumscribedCircle(arcState.p1,arcState.p2,pt);
+      if(!circ){toast('Collinear — pick a different midpoint');arcState={phase:0};return;}
+      const{cx,cy,r}=circ;
+      const startA=Math.atan2(arcState.p1.y-cy,arcState.p1.x-cx);
+      const midA=Math.atan2(arcState.p2.y-cy,arcState.p2.x-cx);
+      const endA=Math.atan2(pt.y-cy,pt.x-cx);
+      const ccw=angleOnArc(normAngle(midA),normAngle(startA),normAngle(endA),true);
+      pushUndo();Sketch.addArc(cx,cy,r,startA,endA,ccw);
+      arcState={phase:0,p1:null,p2:null};refreshUI();render();toast(`Arc r=${r.toFixed(1)}${unitMode}`);
+    }
+  } else if(t==='rect'){
+    if(!rectActive){rectActive=true;rectP1={x:pt.x,y:pt.y};}
     else{
-      if(Math.abs(pt.x-rectP1.x1)>1 && Math.abs(pt.y-rectP1.y1)>1){
+      if(Math.abs(pt.x-rectP1.x)>0.5&&Math.abs(pt.y-rectP1.y)>0.5){
         pushUndo();
-        sketch.objects.push({type:'rect',x1:rectP1.x1,y1:rectP1.y1,x2:pt.x,y2:pt.y});
+        Sketch.addPolyline([{x:rectP1.x,y:rectP1.y},{x:pt.x,y:rectP1.y},{x:pt.x,y:pt.y},{x:rectP1.x,y:pt.y}],true);
       }
-      rectActive=false; rectP1=null; refreshUI(); render();
+      rectActive=false;rectP1=null;refreshUI();render();
     }
-  }
-
-  else if(t==='circle'){
-    if(!circleActive){circleActive=true; circleCenter={x:pt.x,y:pt.y};}
+  } else if(t==='circle'){
+    if(circleState.phase===0){circleState.phase=1;circleState.cx=pt.x;circleState.cy=pt.y;}
     else{
-      const r=Math.hypot(pt.x-circleCenter.x, pt.y-circleCenter.y);
-      if(r>1){pushUndo(); sketch.objects.push({type:'circle',cx:circleCenter.x,cy:circleCenter.y,r});}
-      circleActive=false; circleCenter=null; refreshUI(); render();
+      const r=Math.hypot(pt.x-circleState.cx,pt.y-circleState.cy);
+      if(r>0.5){pushUndo();Sketch.addCircle(circleState.cx,circleState.cy,r);}
+      circleState={phase:0};refreshUI();render();
     }
-  }
-
-  else if(t==='extrude'){
-    if(!findLoops().length) return toast('Draw a closed shape first');
+  } else if(t==='polygon'){
+    if(polyState.phase===0){polyState.phase=1;polyState.cx=pt.x;polyState.cy=pt.y;}
+    else{
+      const n=parseInt(document.getElementById('poly-sides').value)||6;
+      const r=Math.hypot(pt.x-polyState.cx,pt.y-polyState.cy);
+      if(r>0.5){
+        const startA=Math.atan2(pt.y-polyState.cy,pt.x-polyState.cx);
+        const pts=[];for(let i=0;i<n;i++){const a=startA+i*(2*Math.PI/n);pts.push({x:polyState.cx+Math.cos(a)*r,y:polyState.cy+Math.sin(a)*r});}
+        pushUndo();Sketch.addPolyline(pts,true);
+        toast(`${n}-gon r=${r.toFixed(1)}${unitMode}`);
+      }
+      polyState={phase:0};refreshUI();render();
+    }
+  } else if(t==='fillet'){
+    const hit=hitSketchObj(sx,sy);
+    if(!hit)return;
+    if(hit.type!=='LINE'){toast('Fillet works on lines');return;}
+    if(!filletState.firstId){filletState.firstId=hit.id;toast('Click second line');}
+    else if(hit.id!==filletState.firstId){
+      const l1=Sketch.objects.find(o=>o.id===filletState.firstId);
+      if(l1)commitFillet(l1,hit);
+      filletState={firstId:null};
+    }
+  } else if(t==='offset'){
+    const hit=hitSketchObj(sx,sy);
+    if(!hit)return;
+    commitOffset(hit);
+  } else if(t==='extrude'){
+    if(!findLoops().length)return toast('Draw a closed shape first');
     const dw=document.getElementById('dim-wrap');
     const wr=cu.getBoundingClientRect();
-    dw.style.left=Math.min(e.clientX-wr.left, W-160)+'px';
-    dw.style.top =Math.min(e.clientY-wr.top+12, H-60)+'px';
-    dw.style.display='block';
-    const inp=document.getElementById('dim-in');
-    inp.value=''; inp.focus();
+    dw.style.left=Math.min(sx,W-160)+'px';dw.style.top=Math.min(sy+12,H-60)+'px';dw.style.display='block';
+    const inp=document.getElementById('dim-in');inp.value='';inp.focus();
     const done=()=>{const v=inp.value;dw.style.display='none';inp.onkeydown=null;if(v)doExtrude(v);};
-    inp.onkeydown=ev=>{
-      if(ev.key==='Enter') done();
-      if(ev.key==='Escape'){dw.style.display='none';inp.onkeydown=null;}
-      ev.stopPropagation();
-    };
-  }
-
-  else if(t==='select'){
-    const best=closestObj(pt,20);
-    if(best!==null){pushUndo();sketch.objects.splice(best,1);refreshUI();render();}
+    inp.onkeydown=ev=>{if(ev.key==='Enter')done();if(ev.key==='Escape'){dw.style.display='none';inp.onkeydown=null;}ev.stopPropagation();};
+  } else if(t==='select'){
+    const hit=hitSketchObj(sx,sy);
+    if(hit){
+      if(e.shiftKey){if(selectedIds.has(hit.id))selectedIds.delete(hit.id);else selectedIds.add(hit.id);}
+      else{selectedIds.clear();selectedIds.add(hit.id);}
+    } else if(!e.shiftKey){selectedIds.clear();}
+    render();
   }
 });
 
-function closestObj(pt,thresh){
-  let best=null, bd=thresh;
-  const px=project(pt.x,pt.y,0); if(!px) return null;
-  sketch.objects.forEach((o,i)=>{
-    let d=Infinity;
-    if(o.type==='line'){
-      const a=project(o.x1,o.y1,0), b=project(o.x2,o.y2,0);
-      if(a&&b) d=ptSegDist(px,a,b);
-    } else {
-      const cx=o.type==='circle'?o.cx:(o.x1+o.x2)/2;
-      const cy=o.type==='circle'?o.cy:(o.y1+o.y2)/2;
-      const c=project(cx,cy,0);
-      if(c) d=Math.hypot(px[0]-c[0],px[1]-c[1]);
-    }
-    if(d<bd){bd=d;best=i;}
-  });
-  return best;
-}
-
-function ptSegDist(p,a,b){
-  const dx=b[0]-a[0], dy=b[1]-a[1], l2=dx*dx+dy*dy;
-  if(l2<1) return Math.hypot(p[0]-a[0],p[1]-a[1]);
-  const t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l2));
-  return Math.hypot(p[0]-(a[0]+t*dx), p[1]-(a[1]+t*dy));
-}
-
 window.addEventListener('mousemove',e=>{
   const rect=cu.getBoundingClientRect();
-  const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
+  const sx=e.clientX-rect.left,sy=e.clientY-rect.top;
+  if(navOrbitStart&&e.buttons&1){cam.theta=navOrbitStart.th-(e.clientX-navOrbitStart.x)*OS;cam.phi=Math.max(-Math.PI/2+0.02,Math.min(Math.PI/2-0.02,navOrbitStart.ph+(e.clientY-navOrbitStart.y)*OS));render();return;}
 
-  // Nav cube drag orbit
-  if(navOrbitStart&&e.buttons&1){
-    cam.theta=navOrbitStart.th-(e.clientX-navOrbitStart.x)*OS;
-    cam.phi=Math.max(-Math.PI/2+0.02,Math.min(Math.PI/2-0.02,
-              navOrbitStart.ph+(e.clientY-navOrbitStart.y)*OS));
-    render(); return;
-  }
-
-  // Nav cube hover tracking — face center first, then edge, corner, polygon
+  // Nav cube hover — face-center > face-polygon > edge > corner
   if(isInNavCube(sx,sy)){
-    const faceNode=hitNavFaceNode(sx,sy);
-    const edge    =faceNode===null?hitNavEdge(sx,sy):null;
-    const corner  =faceNode===null&&edge===null?hitNavCorner(sx,sy):null;
-    const facePoly=faceNode===null&&edge===null&&corner===null?hitNavFacePoly(sx,sy):null;
-    const face=faceNode||facePoly||null;
-    const changed=corner!==navHoverCorner||edge!==navHoverEdge||face!==navHoverFace;
+    const fn=hitNavFaceNode(sx,sy);
+    const fa=fn===null?hitNavFacePoly(sx,sy):null;
+    const ed=fn===null&&fa===null?hitNavEdge(sx,sy):null;
+    const co=fn===null&&fa===null&&ed===null?hitNavCorner(sx,sy):null;
+    const face=fn||fa||null;
+    const changed=co!==navHoverCorner||ed!==navHoverEdge||face!==navHoverFace;
     if(changed){
-      // Update glow state when touching a corner or edge
-      if(faceNode!==null){ clearTimeout(navGlowTimer);navGlowTimer=null;
-        navGlowState={type:'face',label:faceNode}; }
-      else if(edge!==null){ clearTimeout(navGlowTimer);navGlowTimer=null;
-        navGlowState={type:'edge',idx:edge}; }
-      else if(corner!==null){ clearTimeout(navGlowTimer);navGlowTimer=null;
-        navGlowState={type:'corner',idx:corner}; }
-      else if(face!==null){ clearTimeout(navGlowTimer);navGlowTimer=null;
-        navGlowState={type:'face',label:face}; }
-      else if((navHoverCorner!==null||navHoverEdge!==null||navHoverFace!==null)&&!navGlowTimer){
-        // Left a node — start 280ms fade timer
-        navGlowTimer=setTimeout(()=>{
-          navGlowState=null; navGlowTimer=null; render();
-        },280);
-      }
-      navHoverCorner=corner; navHoverEdge=edge; navHoverFace=face;
-      render();
+      if(fn!==null){clearTimeout(navGlowTimer);navGlowTimer=null;navGlowState={type:'face',label:fn};}
+      else if(fa!==null){clearTimeout(navGlowTimer);navGlowTimer=null;navGlowState={type:'face',label:fa};}
+      else if(ed!==null){clearTimeout(navGlowTimer);navGlowTimer=null;navGlowState={type:'edge',idx:ed};}
+      else if(co!==null){clearTimeout(navGlowTimer);navGlowTimer=null;navGlowState={type:'corner',idx:co};}
+      else if((navHoverCorner!==null||navHoverEdge!==null||navHoverFace!==null)&&!navGlowTimer){navGlowTimer=setTimeout(()=>{navGlowState=null;navGlowTimer=null;render();},280);}
+      navHoverCorner=co;navHoverEdge=ed;navHoverFace=face;render();
     }
-    cu.style.cursor=(corner!==null||edge!==null||face)?'pointer':'grab';
+    cu.style.cursor=(co!==null||ed!==null||face)?'pointer':'grab';
   } else if(navHoverFace!==null||navHoverCorner!==null||navHoverEdge!==null){
-    // Left nav cube entirely — start fade if not already running
-    if((navHoverCorner!==null||navHoverEdge!==null||navHoverFace!==null)&&!navGlowTimer){
-      navGlowTimer=setTimeout(()=>{
-        navGlowState=null; navGlowTimer=null; render();
-      },280);
-    }
-    navHoverFace=null; navHoverCorner=null; navHoverEdge=null; render();
+    if(!navGlowTimer){navGlowTimer=setTimeout(()=>{navGlowState=null;navGlowTimer=null;render();},280);}
+    navHoverFace=null;navHoverCorner=null;navHoverEdge=null;render();
     cu.style.cursor=activeTool==='select'?'default':'crosshair';
   }
 
-  if(orbitStart&&e.buttons&2){
-    cam.theta=orbitStart.th - (e.clientX-orbitStart.x)*OS;
-    cam.phi=Math.max(-Math.PI/2+0.02, Math.min(Math.PI/2-0.02,
-              orbitStart.ph+(e.clientY-orbitStart.y)*OS));
-    hoverPt=null; render(); return;
-  }
-  if(panStart&&e.buttons&4){
-    const{right,up}=cam.basis();
-    const s=cam.radius*Math.tan(cam.fov/2)*2/(H||1);
-    const dx=e.clientX-panStart.x, dy=e.clientY-panStart.y;
-    cam.target[0]=panStart.tgt[0]-dx*s*right[0]+dy*s*up[0];
-    cam.target[1]=panStart.tgt[1]-dx*s*right[1]+dy*s*up[1];
-    cam.target[2]=panStart.tgt[2]-dx*s*right[2]+dy*s*up[2];
-    render(); return;
-  }
+  if(orbitStart&&e.buttons&2){cam.theta=orbitStart.th-(e.clientX-orbitStart.x)*OS;cam.phi=Math.max(-Math.PI/2+0.02,Math.min(Math.PI/2-0.02,orbitStart.ph+(e.clientY-orbitStart.y)*OS));hoverPt=null;render();return;}
+  if(panStart&&e.buttons&4){const{right,up}=cam.basis();const s=cam.radius*Math.tan(cam.fov/2)*2/(H||1);const dx=e.clientX-panStart.x,dy=e.clientY-panStart.y;cam.target[0]=panStart.tgt[0]-dx*s*right[0]+dy*s*up[0];cam.target[1]=panStart.tgt[1]-dx*s*right[1]+dy*s*up[1];cam.target[2]=panStart.tgt[2]-dx*s*right[2]+dy*s*up[2];render();return;}
 
-  const raw=screenToPlane(sx,sy);
-  hoverPt=snapped(raw);
-  if(hoverPt){
-    document.getElementById('cx').textContent=hoverPt.x.toFixed(1);
-    document.getElementById('cy').textContent=hoverPt.y.toFixed(1);
-  }
+  const pt=resolvePoint(sx,sy);
+  hoverPt=pt;
+  if(pt){document.getElementById('cx').textContent=pt.x.toFixed(1);document.getElementById('cy').textContent=pt.y.toFixed(1);}
   render();
 });
 
 window.addEventListener('mouseup',()=>{orbitStart=null;panStart=null;navOrbitStart=null;});
-cu.addEventListener('wheel',e=>{
-  e.preventDefault();
-  cam.radius=Math.max(10,cam.radius*(1+e.deltaY*ZS));
-  render();
-},{passive:false});
+cu.addEventListener('wheel',e=>{e.preventDefault();cam.radius=Math.max(10,cam.radius*(1+e.deltaY*ZS));render();},{passive:false});
 cu.addEventListener('contextmenu',e=>e.preventDefault());
 
-// Touch: 2-finger orbit + pinch-zoom, 1-finger draw
-let tDist=0, tOrb=null;
-cu.addEventListener('touchstart',e=>{
-  if(e.touches.length===2){
-    e.preventDefault();
-    const dx=e.touches[0].clientX-e.touches[1].clientX;
-    const dy=e.touches[0].clientY-e.touches[1].clientY;
-    tDist=Math.sqrt(dx*dx+dy*dy);
-    tOrb={x:(e.touches[0].clientX+e.touches[1].clientX)/2,
-          y:(e.touches[0].clientY+e.touches[1].clientY)/2,
-          th:cam.theta,ph:cam.phi};
-  }
-},{passive:false});
+// Touch
+let tDist=0,tOrb=null;
+cu.addEventListener('touchstart',e=>{if(e.touches.length===2){e.preventDefault();const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;tDist=Math.sqrt(dx*dx+dy*dy);tOrb={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,th:cam.theta,ph:cam.phi};}},{passive:false});
+cu.addEventListener('touchmove',e=>{if(e.touches.length===2){e.preventDefault();const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,d=Math.sqrt(dx*dx+dy*dy);cam.radius=Math.max(10,cam.radius*(tDist/d));tDist=d;if(tOrb){const cx=(e.touches[0].clientX+e.touches[1].clientX)/2,cy=(e.touches[0].clientY+e.touches[1].clientY)/2;cam.theta=tOrb.th-(cx-tOrb.x)*OS*1.4;cam.phi=Math.max(-Math.PI/2+0.02,Math.min(Math.PI/2-0.02,tOrb.ph+(cy-tOrb.y)*OS*1.4));}render();}},{passive:false});
+cu.addEventListener('touchstart',e=>{if(e.touches.length===1){const r=cu.getBoundingClientRect();const sx=e.touches[0].clientX-r.left,sy=e.touches[0].clientY-r.top;const pt=resolvePoint(sx,sy);if(pt){hoverPt=pt;render();}}},{passive:true});
 
-cu.addEventListener('touchmove',e=>{
-  if(e.touches.length===2){
-    e.preventDefault();
-    const dx=e.touches[0].clientX-e.touches[1].clientX;
-    const dy=e.touches[0].clientY-e.touches[1].clientY;
-    const d=Math.sqrt(dx*dx+dy*dy);
-    cam.radius=Math.max(10,cam.radius*(tDist/d)); tDist=d;
-    if(tOrb){
-      const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
-      const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
-      cam.theta=tOrb.th-(cx-tOrb.x)*OS*1.4;
-      cam.phi=Math.max(-Math.PI/2+0.02,Math.min(Math.PI/2-0.02,tOrb.ph+(cy-tOrb.y)*OS*1.4));
-    }
-    render();
-  }
-},{passive:false});
-
-// Keyboard shortcuts
+// Keyboard
 document.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT') return;
+  if(e.target.tagName==='INPUT')return;
   if(e.ctrlKey&&e.key==='z'){undo();return;}
+  if(e.ctrlKey&&e.key==='a'){selectAll();return;}
   if(e.key==='Escape'){
-    lineChain=[]; lineActive=false;
-    rectP1=null; rectActive=false;
-    circleCenter=null; circleActive=false;
-    document.getElementById('dim-wrap').style.display='none';
-    render(); return;
+    lineChain=[];lineActive=false;arcState={phase:0,p1:null,p2:null};
+    rectP1=null;rectActive=false;circleState={phase:0};polyState={phase:0};
+    filletState={firstId:null};selectedIds.clear();
+    document.getElementById('dim-wrap').style.display='none';render();return;
   }
-  if((e.key==='Delete'||e.key==='Backspace')&&activeTool==='line'&&lineChain.length){
-    lineChain.pop(); render(); return;
+  if(e.key==='Delete'||e.key==='Backspace'){
+    if(activeTool==='line'&&lineChain.length){lineChain.pop();render();return;}
+    if(selectedIds.size){deleteSelected();return;}
   }
-  const map={s:'select',l:'line',r:'rect',c:'circle',e:'extrude'};
-  if(map[e.key]&&!e.ctrlKey&&!e.altKey) setTool(map[e.key]);
+  if(e.key==='Tab'){e.preventDefault();setView('top');return;}
+  const map={s:'select',l:'line',a:'arc',r:'rect',c:'circle',p:'polygon',f:'fillet',o:'offset',e:'extrude'};
+  if(map[e.key]&&!e.ctrlKey&&!e.altKey)setTool(map[e.key]);
 });
 
-// ── FILE I/O ─────────────────────────────────────────────────────────────────
+// ── FILE I/O ──────────────────────────────────────────────────────────────────
 function newFile(){
-  if((!sketch.objects.length&&!solids.length)||confirm('Clear scene?')){
-    sketch.objects=[]; solids.length=0; undos.length=0; refreshUI(); render();
+  if((!Sketch.objects.length&&!solids.length)||confirm('Clear scene?')){
+    Sketch.clear();solids.length=0;undos.length=0;selectedIds.clear();refreshUI();render();
   }
 }
 function saveFile(){
-  const d=JSON.stringify({v:'1.0',program:'KUBE',coordSys:'XY-Z0',sketch,solids},null,2);
+  const d=JSON.stringify({v:'2.0',program:'KUBE',coordSys:'XY-Z0',unitMode,
+    sketch:{objects:Sketch.objects,nextId:Sketch.nextId},solids},null,2);
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([d],{type:'application/json'}));
-  a.download='model.kbe'; a.click(); toast('Saved model.kbe');
+  a.download='model.kbe';a.click();toast('Saved model.kbe');
 }
 function loadFile(){document.getElementById('file-in').click();}
 function onFileLoad(e){
-  const f=e.target.files[0]; if(!f) return;
+  const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
   r.onload=ev=>{try{
     const d=JSON.parse(ev.target.result);
-    sketch.objects=d.sketch?.objects||[];
-    solids.length=0; (d.solids||[]).forEach(s=>solids.push(s));
-    undos.length=0; refreshUI(); frameScene(); render(); toast('Loaded '+f.name);
-  }catch{toast('Error reading file');}};
-  r.readAsText(f); e.target.value='';
+    // v2 format
+    if(d.sketch&&d.sketch.objects){Sketch.objects=d.sketch.objects;Sketch.nextId=d.sketch.nextId||1;}
+    // v1 compat
+    else if(d.sketch&&d.sketch.objects===undefined&&Array.isArray(d.sketch)){Sketch.objects=d.sketch;Sketch.nextId=1;}
+    else{Sketch.objects=[];Sketch.nextId=1;}
+    solids.length=0;(d.solids||[]).forEach(s=>solids.push(s));
+    undos.length=0;selectedIds.clear();refreshUI();frameScene();render();toast('Loaded '+f.name);
+  }catch(ex){toast('Error reading file');}};
+  r.readAsText(f);e.target.value='';
 }
-
 function exportSTL(){
-  if(!solids.length) return toast('No solids to export');
+  if(!solids.length)return toast('No solids to export');
   let s='solid kube\n';
-  for(const solid of solids){
-    for(const f of solidFaces(solid)){
-      const n=f.normal;
-      s+=`facet normal ${n[0].toFixed(6)} ${n[1].toFixed(6)} ${n[2].toFixed(6)}\n outer loop\n`;
-      const v=f.verts;
-      for(let i=1;i<v.length-1;i++){
-        [v[0],v[i],v[i+1]].forEach(vt=>
-          s+=`  vertex ${vt[0].toFixed(4)} ${vt[1].toFixed(4)} ${vt[2].toFixed(4)}\n`);
-      }
-      s+=' endloop\nendfacet\n';
-    }
-  }
-  s+='endsolid kube\n';
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([s],{type:'text/plain'}));
-  a.download='model.stl'; a.click(); toast('Exported model.stl');
+  for(const solid of solids){for(const f of solidFaces(solid)){const n=f.normal;s+=`facet normal ${n[0].toFixed(6)} ${n[1].toFixed(6)} ${n[2].toFixed(6)}\n outer loop\n`;const v=f.verts;for(let i=1;i<v.length-1;i++){[v[0],v[i],v[i+1]].forEach(vt=>s+=`  vertex ${vt[0].toFixed(4)} ${vt[1].toFixed(4)} ${vt[2].toFixed(4)}\n`);}s+=' endloop\nendfacet\n';}}
+  s+='endsolid kube\n';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'text/plain'}));a.download='model.stl';a.click();toast('Exported model.stl');
 }
+function clearSketch(){if(!Sketch.objects.length)return;pushUndo();Sketch.clear();selectedIds.clear();refreshUI();render();toast('Sketch cleared');}
 
-function clearSketch(){
-  if(!sketch.objects.length) return;
-  pushUndo(); sketch.objects=[]; refreshUI(); render(); toast('Sketch cleared');
-}
-
-// ── UI REFRESH ────────────────────────────────────────────────────────────────
+// ── UI ────────────────────────────────────────────────────────────────────────
 function refreshUI(){
-  const lines =sketch.objects.filter(o=>o.type==='line').length;
-  const rects =sketch.objects.filter(o=>o.type==='rect').length;
-  const circs =sketch.objects.filter(o=>o.type==='circle').length;
-  const el=document.getElementById('obj-list');
-  const parts=[];
-  if(lines) parts.push(`<div>${lines} line${lines>1?'s':''}</div>`);
-  if(rects) parts.push(`<div>${rects} rect${rects>1?'s':''}</div>`);
-  if(circs) parts.push(`<div>${circs} circle${circs>1?'s':''}</div>`);
+  const lines=Sketch.objects.filter(o=>o.type==='LINE').length;
+  const arcs=Sketch.objects.filter(o=>o.type==='ARC').length;
+  const circs=Sketch.objects.filter(o=>o.type==='CIRCLE').length;
+  const polys=Sketch.objects.filter(o=>o.type==='POLYLINE').length;
+  const el=document.getElementById('obj-list'),parts=[];
+  if(lines)parts.push(`<div>${lines} line${lines>1?'s':''}</div>`);
+  if(arcs)parts.push(`<div>${arcs} arc${arcs>1?'s':''}</div>`);
+  if(circs)parts.push(`<div>${circs} circle${circs>1?'s':''}</div>`);
+  if(polys)parts.push(`<div>${polys} polyline${polys>1?'s':''}</div>`);
   el.innerHTML=parts.join('')||'<span style="color:var(--t3)">Empty</span>';
   document.getElementById('st-lines').textContent=lines;
-  document.getElementById('st-shapes').textContent=rects+circs;
+  document.getElementById('st-arcs').textContent=arcs;
+  document.getElementById('st-shapes').textContent=circs+polys;
   document.getElementById('st-solids').textContent=solids.length;
 }
-
-// ── TOAST ─────────────────────────────────────────────────────────────────────
 let _tt=null;
-function toast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2500);
-}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800);}
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-setView('iso');
-resize();
-toast('KUBE · L=Line  R=Rect  C=Circle  E=Extrude · Right-drag=Orbit · Z=extrusion axis');
+// ── STARTUP MODAL ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const grid=document.getElementById('kube-su-units');
+  grid.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-u]');if(!btn)return;
+    grid.querySelectorAll('.kube-su-btn').forEach(b=>b.classList.remove('act'));
+    btn.classList.add('act');unitMode=btn.dataset.u;
+  });
+  document.getElementById('kube-su-go').addEventListener('click',()=>{
+    snapGrid=unitMode==='mm'?SNAP_MM:SNAP_IN;
+    document.getElementById('snap-label').textContent=unitMode==='mm'?'10mm':'0.25"';
+    document.getElementById('dim-lbl').textContent='Extrude height ('+(unitMode==='mm'?'mm':'in')+')';
+    document.getElementById('kube-su-ov').style.display='none';
+    setView('iso');resize();
+    toast('KUBE · L=Line  A=Arc  R=Rect  C=Circle  P=Poly  F=Fillet  O=Offset  E=Extrude');
+  });
+});
 </script>
-</body>
-</html>
+</body></html>
