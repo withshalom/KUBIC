@@ -1,12 +1,43 @@
 <!DOCTYPE html>
 <!--
-  KERFsuite™ — KUBE · Kernel-Unified Build Environment
-  Copyright (C) 2024-2025 KERFsuite / withshalom  SPDX-License-Identifier: AGPL-3.0-or-later
+  KADsuite™ — KUBE · Kernel-Unified Build Environment
+  Copyright (C) 2024-2025 KADsuite / withshalom
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published
+  by the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-License-Identifier: AGPL-3.0-or-later
+
+  KADsuite™, KAD™, KAM™, KUBE™, KARVE™, KONSTRUCT™, KULTIVATE™,
+  KODE™, and KANVAS™ are trademarks of withshalom / KADsuite.
+  Trademark rights are independent of and not transferred by this
+  AGPL-3.0 license. Forks and derivative works may not use these
+  marks or any confusingly similar names without express written
+  permission. The AGPL license governs this source code only.
+
+  Forks must remain open source under AGPL — KADsuite™ trademarks
+  and branding are not licensed and may not be used in any fork or
+  derivative work without separate written permission.
+
+  KADsuite™ trademarks are not covered by the AGPL-3.0 license.
+  Native builds are separate proprietary products.
+
   Coordinate system: X=right Y=up Z=extrusion. Sketch plane Z=0 (XY). Matches KAD exactly.
 -->
 <html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KUBE — KERFsuite</title>
+<meta charset="UTF-8">
+<meta name="copyright" content="Copyright (C) 2024-2025 KADsuite / withshalom. Licensed under AGPL-3.0-or-later. KADsuite™, KAD™, KAM™, KUBE™, KARVE™, KONSTRUCT™, KULTIVATE™, KODE™, and KANVAS™ are trademarks of withshalom / KADsuite. Forks must remain open source under AGPL. Trademarks not licensed by AGPL."><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KUBE — KADsuite</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Syne:wght@600;800&display=swap" rel="stylesheet">
 <style>
@@ -269,7 +300,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);color:va
 // ═══════════════════════════════════════════════════════════════════════════
 // KUBE — 3D-native drafting. Pure Canvas2D perspective renderer.
 // Geometry: LINE ARC CIRCLE POLYLINE on Z=0 XY sketch plane.
-// Borrowing arc/fillet/polygon/snap logic from KAD (KERFsuite 2D drafting).
+// Borrowing arc/fillet/polygon/snap logic from KAD (KADsuite 2D drafting).
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ── UNITS ───────────────────────────────────────────────────────────────────
