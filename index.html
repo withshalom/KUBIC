@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  KADsuite™ — KUBE · Kernel-Unified Build Environment
+  KADsuite™ — KUBIC · Kernel Unified Building Informatics Control
   Copyright (C) 2024-2025 KADsuite / withshalom
 
   This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@
 
   SPDX-License-Identifier: AGPL-3.0-or-later
 
-  KADsuite™, KAD™, KAM™, KUBE™, KARVE™, KONSTRUCT™, KULTIVATE™,
+  KADsuite™, KAD™, KAM™, KUBIC™, KARVE™, KONSTRUCT™, KULTIVATE™,
   KODE™, and KANVAS™ are trademarks of withshalom / KADsuite.
   Trademark rights are independent of and not transferred by this
   AGPL-3.0 license. Forks and derivative works may not use these
@@ -36,8 +36,8 @@
 -->
 <html lang="en"><head>
 <meta charset="UTF-8">
-<meta name="copyright" content="Copyright (C) 2024-2025 KADsuite / withshalom. Licensed under AGPL-3.0-or-later. KADsuite™, KAD™, KAM™, KUBE™, KARVE™, KONSTRUCT™, KULTIVATE™, KODE™, and KANVAS™ are trademarks of withshalom / KADsuite. Forks must remain open source under AGPL. Trademarks not licensed by AGPL."><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KUBE — KADsuite</title>
+<meta name="copyright" content="Copyright (C) 2024-2025 KADsuite / withshalom. Licensed under AGPL-3.0-or-later. KADsuite™, KAD™, KAM™, KUBIC™, KARVE™, KONSTRUCT™, KULTIVATE™, KODE™, and KANVAS™ are trademarks of withshalom / KADsuite. Forks must remain open source under AGPL. Trademarks not licensed by AGPL."><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KUBIC — Kernel Unified Building Informatics Control — KADsuite</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Syne:wght@600;800&display=swap" rel="stylesheet">
 <style>
@@ -172,7 +172,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);color:va
   <div class="kube-su-bx">
     <div class="kube-su-hd">
       <div class="kube-su-mk">KB</div>
-      <div><div class="kube-su-ttl">KUBE</div><div class="kube-su-sub">Kernel-Unified Build Environment</div></div>
+      <div><div class="kube-su-ttl">KUBIC</div><div class="kube-su-sub">Kernel Unified Building Informatics Control</div></div>
     </div>
     <div class="kube-su-bd">
       <div class="kube-su-lbl">Units</div>
@@ -189,7 +189,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);color:va
 <div id="sidebar">
   <div class="brand">
     <div class="brand-mark">KB</div>
-    <div><div class="brand-name">KUBE</div><div class="brand-sub">3D Solid Modeler</div></div>
+    <div><div class="brand-name">KUBIC</div><div class="brand-sub">Kernel Unified Building Informatics Control</div></div>
   </div>
 
   <div class="sb-sec">
@@ -270,16 +270,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);color:va
 
   <div class="sb-footer">
     <button class="kv-btn" onclick="newFile()">New</button>
-    <button class="kv-btn" onclick="saveFile()">Save .KBE</button>
-    <button class="kv-btn" onclick="loadFile()">Open .KBE</button>
+    <button class="kv-btn" onclick="saveFile()">Save .KBC</button>
+    <button class="kv-btn" onclick="loadFile()">Open .KBC</button>
     <button class="kv-btn brass" onclick="exportSTL()">Export STL</button>
-    <input type="file" id="file-in" accept=".kbe,.json" style="display:none" onchange="onFileLoad(event)">
+    <button class="kv-btn" onclick="triggerSTLImport()" title="Import binary or ASCII STL">Import STL</button>
+    <input type="file" id="file-in"     accept=".kbc,.json" style="display:none" onchange="onFileLoad(event)">
+    <input type="file" id="stl-file-in" accept=".stl"       style="display:none" onchange="onSTLLoad(event)">
   </div>
 </div>
 
 <div id="main">
   <div id="topbar">
-    <span style="font-family:var(--fd);font-weight:800;font-size:13px;color:var(--acc);letter-spacing:.04em;padding-right:10px;">KUBE</span>
+    <span style="font-family:var(--fd);font-weight:800;font-size:13px;color:var(--acc);letter-spacing:.04em;padding-right:10px;">KUBIC</span>
     <button class="tb-btn" onclick="undo()">Undo</button>
     <div class="tb-sep"></div>
     <button class="tb-btn" onclick="deleteSelected()">Delete</button>
@@ -315,7 +317,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);color:va
 <script>
 'use strict';
 // ═══════════════════════════════════════════════════════════════════════════
-// KUBE — 3D-native drafting. Pure Canvas2D perspective renderer.
+// KUBIC — 3D-native drafting. Pure Canvas2D perspective renderer.
 // Geometry: LINE ARC CIRCLE POLYLINE on Z=0 XY sketch plane.
 // Borrowing arc/fillet/polygon/snap logic from KAD (KADsuite 2D drafting).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -589,9 +591,37 @@ function solidFaces(solid){
   }
   return faces;
 }
+
+function drawRawMesh(solid, cam_eye, light) {
+  if (!solid.rawTris) return;
+  for (const tri of solid.rawTris) {
+    const [ax,ay,az]=tri.v[0],[bx,by,bz]=tri.v[1],[cx2,cy2,cz2]=tri.v[2];
+    const ab=[bx-ax,by-ay,bz-az], ac=[cx2-ax,cy2-ay,cz2-az];
+    const n=V.norm(V.cross(ab,ac));
+    const toEye=[cam_eye[0]-ax,cam_eye[1]-ay,cam_eye[2]-az];
+    if(V.dot(n,toEye)<0) continue;
+    const diff=Math.max(0.08, V.dot(n,light));
+    const br=Math.round(40+diff*180);
+    const pa=project(tri.v[0]),pb=project(tri.v[1]),pc=project(tri.v[2]);
+    if(!pa||!pb||!pc) continue;
+    ctx.beginPath();
+    ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.lineTo(pc.x,pc.y);
+    ctx.closePath();
+    ctx.fillStyle='rgb('+Math.round(br*0.7)+','+Math.round(br*0.85)+','+br+')';
+    ctx.fill();
+    ctx.strokeStyle='rgba(100,140,180,0.12)';
+    ctx.lineWidth=0.3; ctx.stroke();
+  }
+}
+
 function drawSolids(){
   const{eye,fwd}=cam.basis(),light=V.norm([0.8,0.6,1.5]);
   for(const solid of solids){
+    // Raw imported mesh — render directly from triangle data
+    if(solid.rawTris&&solid.rawTris.length){
+      drawRawMesh(solid, eye, light);
+      continue;
+    }
     const faces=solidFaces(solid);
     faces.forEach(f=>{
       const cx=f.verts.reduce((s,v)=>s+v[0],0)/f.verts.length;
@@ -1182,11 +1212,11 @@ function newFile(){
   }
 }
 function saveFile(){
-  const d=JSON.stringify({v:'2.0',program:'KUBE',coordSys:'XY-Z0',unitMode,
+  const d=JSON.stringify({v:'2.0',program:'KUBIC',coordSys:'XY-Z0',unitMode,
     sketch:{objects:Sketch.objects,nextId:Sketch.nextId},solids},null,2);
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([d],{type:'application/json'}));
-  a.download='model.kbe';a.click();toast('Saved model.kbe');
+  a.download='model.kbc';a.click();toast('Saved model.kbc');
 }
 function loadFile(){document.getElementById('file-in').click();}
 function onFileLoad(e){
@@ -1204,6 +1234,143 @@ function onFileLoad(e){
   }catch(ex){toast('Error reading file');}};
   r.readAsText(f);e.target.value='';
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// STL IMPORT — binary and ASCII, reconstructs solid from triangle mesh
+// ════════════════════════════════════════════════════════════════════════════
+
+function triggerSTLImport() {
+  document.getElementById('stl-file-in').click();
+}
+
+function onSTLLoad(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const tris = parseSTL(ev.target.result);
+      if (!tris || !tris.length) { toast('No geometry found in STL'); return; }
+      stlToSolid(tris, file.name);
+    } catch(ex) { toast('STL error: ' + ex.message); console.error(ex); }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+}
+
+function parseSTL(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const view  = new DataView(buffer);
+  const binaryCount = view.getUint32(80, true);
+  const expectedBinarySize = 80 + 4 + binaryCount * 50;
+  const isLikelyBinary = (buffer.byteLength === expectedBinarySize) && binaryCount > 0;
+  if (isLikelyBinary) return parseBinarySTL(buffer, view, binaryCount);
+  const text = new TextDecoder().decode(buffer);
+  return parseASCIISTL(text);
+}
+
+function parseBinarySTL(buffer, view, count) {
+  const tris = [];
+  let offset = 84;
+  for (let i = 0; i < count; i++) {
+    const nx=view.getFloat32(offset,true), ny=view.getFloat32(offset+4,true), nz=view.getFloat32(offset+8,true);
+    offset += 12;
+    const verts = [];
+    for (let v=0;v<3;v++) {
+      verts.push([view.getFloat32(offset,true), view.getFloat32(offset+4,true), view.getFloat32(offset+8,true)]);
+      offset += 12;
+    }
+    offset += 2; // attribute bytes
+    tris.push({n:[nx,ny,nz], v:verts});
+  }
+  return tris;
+}
+
+function parseASCIISTL(text) {
+  const tris = [];
+  const facetRe = /facet\s+normal\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)[\s\S]*?outer\s+loop([\s\S]*?)endloop/gi;
+  const vertRe  = /vertex\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)/gi;
+  let facet;
+  while ((facet = facetRe.exec(text)) !== null) {
+    const loopText = facet[4];
+    const verts = [];
+    let vm; vertRe.lastIndex = 0;
+    while ((vm = vertRe.exec(loopText)) !== null)
+      verts.push([parseFloat(vm[1]), parseFloat(vm[2]), parseFloat(vm[3])]);
+    if (verts.length === 3)
+      tris.push({n:[parseFloat(facet[1]),parseFloat(facet[2]),parseFloat(facet[3])], v:verts});
+  }
+  return tris;
+}
+
+function reconstructPolygon(edges) {
+  if (!edges.length) return null;
+  const snap = ([x,y]) => Math.round(x*1000)/1000 + ',' + Math.round(y*1000)/1000;
+  const adj = new Map();
+  for (const [a,b] of edges) {
+    const ka=snap(a), kb=snap(b);
+    if (!adj.has(ka)) adj.set(ka, {pt:a, neighbors:[]});
+    if (!adj.has(kb)) adj.set(kb, {pt:b, neighbors:[]});
+    adj.get(ka).neighbors.push(kb);
+    adj.get(kb).neighbors.push(ka);
+  }
+  const start = adj.keys().next().value;
+  const poly = []; let cur=start, prev=null;
+  const visited = new Set();
+  while (!visited.has(cur)) {
+    visited.add(cur);
+    poly.push(adj.get(cur).pt);
+    const nbrs = adj.get(cur).neighbors.filter(n=>n!==prev);
+    if (!nbrs.length) break;
+    prev=cur; cur=nbrs[0];
+  }
+  return poly.length >= 3 ? poly : null;
+}
+
+function stlToSolid(tris, filename) {
+  if (!tris.length) { toast('Empty STL'); return; }
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity,minZ=Infinity,maxZ=-Infinity;
+  for (const t of tris) for (const v of t.v) {
+    minX=Math.min(minX,v[0]); maxX=Math.max(maxX,v[0]);
+    minY=Math.min(minY,v[1]); maxY=Math.max(maxY,v[1]);
+    minZ=Math.min(minZ,v[2]); maxZ=Math.max(maxZ,v[2]);
+  }
+  const W=maxX-minX, D=maxY-minY, H=maxZ-minZ;
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+  // Scale: STL always mm; if KUBIC in inches divide by 25.4
+  const sc = (unitMode==='in') ? 25.4 : 1;
+  const tk = v => v/sc;
+
+  // Try prism reconstruction — find bottom face outline
+  const eps = H * 0.01 + 0.001;
+  const bottomEdges = [];
+  for (const t of tris) {
+    if (t.v.every(v=>Math.abs(v[2]-minZ)<eps)) {
+      for (let i=0;i<3;i++) {
+        const a=t.v[i], b=t.v[(i+1)%3];
+        bottomEdges.push([[tk(a[0]-cx),tk(a[1]-cy)],[tk(b[0]-cx),tk(b[1]-cy)]]);
+      }
+    }
+  }
+  const poly = reconstructPolygon(bottomEdges);
+  if (poly && poly.length>=3) {
+    solids.push({base:poly.map(p=>({x:p[0],y:p[1]})), height:tk(H),
+      imported:true, importedFrom:filename, id:nextSolidId++});
+    refreshUI(); frameScene(); render();
+    toast('STL imported · prism · '+poly.length+' verts · H='+tk(H).toFixed(2)+'mm');
+    return;
+  }
+
+  // Fallback: raw mesh solid
+  const rawTris = tris.map(t=>({n:t.n, v:t.v.map(v=>[tk(v[0]-cx),tk(v[1]-cy),tk(v[2]-minZ)])}));
+  solids.push({
+    base:[{x:-tk(W)/2,y:-tk(D)/2},{x:tk(W)/2,y:-tk(D)/2},{x:tk(W)/2,y:tk(D)/2},{x:-tk(W)/2,y:tk(D)/2}],
+    height:tk(H), rawTris, imported:true, importedFrom:filename, id:nextSolidId++
+  });
+  refreshUI(); frameScene(); render();
+  toast('STL imported · '+tris.length+' tris · '+tk(W).toFixed(1)+'x'+tk(D).toFixed(1)+'x'+tk(H).toFixed(1)+'mm');
+}
+
 function exportSTL(){
   if(!solids.length) return toast('No solids to export');
 
@@ -1231,7 +1398,7 @@ function exportSTL(){
   // Binary STL: 80-byte header + 4-byte tri count + (50 bytes × tri count)
   const buf    = new ArrayBuffer(80 + 4 + tris.length * 50);
   const view   = new DataView(buf);
-  const header = 'KUBE STL Export - kadsuite.com';
+  const header = 'KUBIC STL Export - kadsuite.com';
   for(let i = 0; i < 80; i++){
     view.setUint8(i, i < header.length ? header.charCodeAt(i) : 0);
   }
@@ -1302,7 +1469,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('dim-lbl').textContent='Extrude height ('+(unitMode==='mm'?'mm':'in')+')';
     document.getElementById('kube-su-ov').style.display='none';
     setView('iso');resize();
-    toast('KUBE · L=Line  A=Arc  R=Rect  C=Circle  P=Poly  F=Fillet  O=Offset  E=Extrude');
+    toast('KUBIC · L=Line  A=Arc  R=Rect  C=Circle  P=Poly  F=Fillet  O=Offset  E=Extrude');
   });
 });
 </script>
